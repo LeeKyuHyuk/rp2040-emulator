@@ -13,13 +13,19 @@ string readHexFile(const string &path) {
                 std::istreambuf_iterator<char>());
 }
 
+uint32_t readHooksCallback(uint32_t address) { return 0; }
+
 int main(void) {
-  string filename("../blink.hex");
-  string hex = readHexFile(filename);
-  RP2040 *mcu = new RP2040(hex);
+  string filename("../hello_uart.hex");
+  string hexFile = readHexFile(filename);
+  RP2040 *mcu = new RP2040(hexFile);
+
+  mcu->readHooks.emplace(0x40034018, &readHooksCallback);
+
   mcu->setPC(0x370);
   for (uint8_t i = 0; i < 60; i++) {
     mcu->executeInstruction();
+    cout << hex << mcu->getPC() << endl;
   }
   return EXIT_SUCCESS;
 }
