@@ -7,7 +7,13 @@ uint32_t opcodeADCS(uint32_t Rdn, uint32_t Rm);
 
 uint32_t opcodeADDS2(uint32_t Rdn, uint32_t imm8);
 
+uint32_t opcodeBL(uint32_t imm);
+
+uint32_t opcodeLDMIA(uint32_t Rn, uint32_t registers);
+
 uint32_t opcodeLDRB(uint32_t Rt, uint32_t Rn, uint32_t imm5);
+
+uint32_t opcodeLSRS(uint32_t Rd, uint32_t Rm, uint32_t imm5);
 
 uint32_t opcodeRSBS(uint32_t Rd, uint32_t Rn);
 

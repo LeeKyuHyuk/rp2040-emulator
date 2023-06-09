@@ -1,5 +1,6 @@
 #include "rp2040.h"
 #include "uart.h"
+#include <cstring>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -25,11 +26,21 @@ int main(void) {
     cout << "UART sent: " << (char)(value) << endl;
   };
 
+  // To start from boot_stage2:
+  // load 256 bytes from flash to the end of SRAM
+  // mcu->setLR(0x0);
+  // const uint16_t BOOT2_SIZE = 256;
+  // memcpy(&mcu->sram, &mcu->flash, BOOT2_SIZE);
+  // mcu->setPC(RAM_START_ADDRESS + SRAM_SIZE - BOOT2_SIZE);
+
+  // To start right after boot_stage2:
+  // mcu->setPC(0x10000100);
+
   mcu->setPC(0x10000370);
-  for (uint32_t i = 0; i < 280; i++) {
+  for (uint32_t i = 0; i < 50; i++) {
+    cout << "0x" << hex << mcu->getPC() << endl;
     mcu->executeInstruction();
     // uncomment for debugging:
-    // cout << hex << mcu->getPC() << endl;
     // cout << hex << mcu->registers[2] << endl;
   }
   return EXIT_SUCCESS;

@@ -22,6 +22,7 @@ const uint32_t SIO_START_ADDRESS = 0xD0000000;
 
 class RP2040 {
 private:
+  const uint32_t SIO_CPUID_OFFSET = 0;
   uint32_t signExtend8(uint32_t value);
   uint32_t signExtend16(uint32_t value);
 
