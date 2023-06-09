@@ -25,7 +25,7 @@ int main(void) {
     cout << "UART sent: " << (char)(value) << endl;
   };
 
-  mcu->setPC(0x370);
+  mcu->setPC(0x10000370);
   for (uint32_t i = 0; i < 280; i++) {
     mcu->executeInstruction();
     // uncomment for debugging:

@@ -147,8 +147,8 @@ void RP2040::writeUint32(uint32_t address, uint32_t value) {
 
 void RP2040::executeInstruction() {
   // ARM Thumb instruction encoding - 16 bits / 2 bytes
-  const uint64_t opcode = this->flash16[this->getPC() / 2];
-  const uint64_t opcode2 = this->flash16[this->getPC() / 2 + 1];
+  const uint64_t opcode = this->readUint16(this->getPC());
+  const uint64_t opcode2 = this->readUint16(this->getPC() + 1);
   uint64_t opcodePC = this->getPC();
   this->setPC(this->getPC() + 2);
   // ADCS
