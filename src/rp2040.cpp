@@ -76,12 +76,12 @@ uint32_t RP2040::readUint32(uint32_t address) {
            sizeof(uint32_t));
     return value;
   } else {
-    map<uint32_t, CPUReadCallback>::iterator iter =
+    map<uint32_t, function<uint32_t(uint32_t)>>::iterator iter =
         (this->readHooks).find(address);
     // Operates when there is a value for the
     // corresponding key in the readHooks map
     if (iter != this->readHooks.end()) {
-      return (*iter->second)(address);
+      return (iter->second)(address);
     }
   }
   cout << "Read from invalid memory address "
@@ -135,12 +135,12 @@ void RP2040::writeUint32(uint32_t address, uint32_t value) {
            << "0x" << hex << sioAddress << endl;
     }
   } else {
-    map<uint32_t, CPUWriteCallback>::iterator iter =
+    map<uint32_t, function<void(uint32_t, uint32_t)>>::iterator iter =
         (this->writeHooks).find(address);
     // Operates when there is a value for the
     // corresponding key in the writeHooks map
     if (iter != this->writeHooks.end()) {
-      return (*iter->second)(address, value);
+      return (iter->second)(address, value);
     }
   }
 }

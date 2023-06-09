@@ -2,6 +2,7 @@
 #define __RP2040_H__
 
 #include <cstdint>
+#include <functional>
 #include <map>
 #include <string>
 
@@ -18,9 +19,6 @@ const uint32_t SIO_START_ADDRESS = 0xD0000000;
 // const uint32_t APSR_Z = 0x40000000;
 // const uint32_t APSR_C = 0x20000000;
 // const uint32_t APSR_V = 0x10000000;
-
-typedef void (*CPUWriteCallback)(uint32_t address, uint32_t value);
-typedef uint32_t (*CPUReadCallback)(uint32_t address);
 
 class RP2040 {
 private:
@@ -39,8 +37,8 @@ public:
       0x00,
   };
 
-  map<uint32_t, CPUWriteCallback> writeHooks;
-  map<uint32_t, CPUReadCallback> readHooks;
+  map<uint32_t, function<void(uint32_t, uint32_t)>> writeHooks;
+  map<uint32_t, function<uint32_t(uint32_t)>> readHooks;
 
   // APSR fields
   bool N = false;
