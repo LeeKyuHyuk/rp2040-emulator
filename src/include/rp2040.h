@@ -19,6 +19,7 @@ const uint32_t SIO_START_ADDRESS = 0xD0000000;
 // const uint32_t APSR_C = 0x20000000;
 // const uint32_t APSR_V = 0x10000000;
 
+typedef void (*CPUWriteCallback)(uint32_t address, uint32_t value);
 typedef uint32_t (*CPUReadCallback)(uint32_t address);
 
 class RP2040 {
@@ -38,6 +39,7 @@ public:
       0x00,
   };
 
+  map<uint32_t, CPUWriteCallback> writeHooks;
   map<uint32_t, CPUReadCallback> readHooks;
 
   // APSR fields
@@ -58,6 +60,7 @@ public:
   bool checkCondition(uint32_t cond);
   uint32_t readUint32(uint32_t address);
   uint16_t readUint16(uint32_t address);
+  uint8_t readUint8(uint32_t address);
   void writeUint32(uint32_t address, uint32_t value);
 
   void executeInstruction();
