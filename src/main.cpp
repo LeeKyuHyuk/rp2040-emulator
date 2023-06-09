@@ -33,15 +33,12 @@ int main(void) {
   // memcpy(&mcu->sram, &mcu->flash, BOOT2_SIZE);
   // mcu->setPC(RAM_START_ADDRESS + SRAM_SIZE - BOOT2_SIZE);
 
-  // To start right after boot_stage2:
-  // mcu->setPC(0x10000100);
-
-  mcu->setPC(0x10000370);
-  for (uint32_t i = 0; i < 50; i++) {
-    cout << "0x" << hex << mcu->getPC() << endl;
+  mcu->setPC(0x10000000);
+  for (uint32_t i = 0; i < 10000; i++) {
+    if (mcu->getPC() >= 0x10000100) {
+      cout << "PC: 0x" << hex << mcu->getPC() << endl;
+    }
     mcu->executeInstruction();
-    // uncomment for debugging:
-    // cout << hex << mcu->registers[2] << endl;
   }
   return EXIT_SUCCESS;
 }

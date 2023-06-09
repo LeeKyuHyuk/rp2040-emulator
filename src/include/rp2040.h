@@ -12,6 +12,7 @@
 using namespace std;
 
 const uint32_t FLASH_START_ADDRESS = 0x10000000;
+const uint32_t FLASH_END_ADDRESS = 0x14000000;
 const uint32_t RAM_START_ADDRESS = 0x20000000;
 const uint32_t SIO_START_ADDRESS = 0xD0000000;
 
@@ -23,6 +24,13 @@ const uint32_t SIO_START_ADDRESS = 0xD0000000;
 class RP2040 {
 private:
   const uint32_t SIO_CPUID_OFFSET = 0;
+
+  const uint32_t XIP_SSI_BASE = 0x18000000;
+  const uint32_t SSI_SR_OFFSET = 0x00000028;
+  const uint32_t SSI_DR0_OFFSET = 0x00000060;
+  const uint32_t SSI_SR_BUSY_BITS = 0x00000001;
+  const uint32_t SSI_SR_TFE_BITS = 0x00000004;
+
   uint32_t signExtend8(uint32_t value);
   uint32_t signExtend16(uint32_t value);
 

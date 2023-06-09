@@ -22,6 +22,21 @@ RP2040::RP2040(string hex) {
                             // (always 0 for now)
                             return 0;
                           });
+  this->readHooks.emplace(
+      XIP_SSI_BASE + SSI_SR_OFFSET,
+      [&](uint32_t address) -> uint32_t { return this->SSI_SR_TFE_BITS; });
+
+  uint32_t dr0 = 0;
+  this->writeHooks.emplace(XIP_SSI_BASE + SSI_DR0_OFFSET,
+                           [&](uint32_t address, uint32_t value) -> void {
+                             const uint8_t CMD_READ_STATUS = 0x05;
+                             if (value == CMD_READ_STATUS) {
+                               dr0 = 1; // tell stage2 that we completed a write
+                             }
+                           });
+  this->readHooks.emplace(XIP_SSI_BASE + SSI_DR0_OFFSET,
+                          [&](uint32_t address) -> uint32_t { return dr0; });
+
   loadHex(hex, this->flash);
 }
 
@@ -73,7 +88,7 @@ uint32_t RP2040::readUint32(uint32_t address) {
   uint32_t value;
   if (address < BOOT_ROM_SIZE) {
     return bootrom[address / 4];
-  } else if (address >= FLASH_START_ADDRESS && address < RAM_START_ADDRESS) {
+  } else if (address >= FLASH_START_ADDRESS && address < FLASH_END_ADDRESS) {
     memcpy(&value, &(this->flash[address - FLASH_START_ADDRESS]),
            sizeof(uint32_t));
     return value;
@@ -189,6 +204,12 @@ void RP2040::executeInstruction() {
     this->C = result >= 0xffffffff;
     this->V = ((int)leftValue | 0) > 0 && imm8 < 0x80 && ((int)result | 0) < 0;
   }
+  // ADR
+  else if (opcode >> 11 == 0b10100) {
+    const uint64_t imm8 = opcode & 0xff;
+    const uint64_t Rd = (opcode >> 8) & 0x7;
+    this->registers[Rd] = (opcodePC & 0xfffffffc) + 4 + (imm8 << 2);
+  }
   // B (with cond)
   else if (opcode >> 12 == 0b1101) {
     uint64_t imm8 = (opcode & 0xff) << 1;
@@ -208,6 +229,14 @@ void RP2040::executeInstruction() {
     }
     this->setPC(getPC() + imm11 + 2);
   }
+  // BICS
+  else if (opcode >> 6 == 0b0100001110) {
+    uint64_t Rm = (opcode >> 3) & 0x7;
+    uint64_t Rdn = opcode & 0x7;
+    const uint64_t result = (this->registers[Rdn] &= ~this->registers[Rm]);
+    this->N = !!(result & 0x80000000);
+    this->Z = result == 0;
+  }
   // BL
   else if (opcode >> 11 == 0b11110 && opcode2 >> 14 == 0b11 &&
            ((opcode2 >> 12) & 0x1) == 1) {
@@ -223,6 +252,17 @@ void RP2040::executeInstruction() {
         ((I1 << 23) | (I2 << 22) | (imm10 << 12) | (imm11 << 1));
     this->setLR(this->getPC() + 2);
     this->setPC(this->getPC() + 2 + imm32);
+  }
+  // BLX
+  else if (opcode >> 7 == 0b010001111 && (opcode & 0x7) == 0) {
+    const uint64_t Rm = (opcode >> 3) & 0xf;
+    this->setLR(this->getPC());
+    this->setPC(this->registers[Rm] & ~1);
+  }
+  // BX
+  else if (opcode >> 7 == 0b010001110 && (opcode & 0x7) == 0) {
+    const uint64_t Rm = (opcode >> 3) & 0xf;
+    this->setPC(this->registers[Rm] & ~1);
   }
   // CMP immediate
   else if (opcode >> 11 == 0b00101) {
@@ -290,7 +330,15 @@ void RP2040::executeInstruction() {
     const uint64_t addr = this->registers[Rn] + imm5;
     this->registers[Rt] = this->readUint8(addr);
   }
-  // LDRSH (immediate)
+  // LDRH (immediate)
+  else if (opcode >> 11 == 0b10001) {
+    const uint64_t imm5 = (opcode >> 6) & 0x1f;
+    const uint64_t Rn = (opcode >> 3) & 0x7;
+    const uint64_t Rt = opcode & 0x7;
+    const uint64_t addr = this->registers[Rn] + imm5;
+    this->registers[Rt] = this->readUint16(addr);
+  }
+  // LDRSH
   else if (opcode >> 9 == 0b0101111) {
     const uint64_t Rm = (opcode >> 6) & 0x7;
     const uint64_t Rn = (opcode >> 3) & 0x7;
@@ -330,6 +378,22 @@ void RP2040::executeInstruction() {
     this->N = !!(value & 0x80000000);
     this->Z = value == 0;
   }
+  // POP
+  else if (opcode >> 9 == 0b1011110) {
+    uint64_t address = this->getSP();
+    for (uint8_t i = 0; i <= 7; i++) {
+      if (opcode & (1 << i)) {
+        this->registers[i] = this->readUint32(address);
+        address += 4;
+      }
+    }
+    if ((opcode >> 8) & 1) {
+      this->setPC(this->readUint32(address));
+      this->writeUint32(address, this->registers[14]);
+      address += 4;
+    }
+    this->setSP(address);
+  }
   // PUSH
   else if (opcode >> 9 == 0b1011010) {
     uint64_t bitCount = 0;
@@ -360,6 +424,22 @@ void RP2040::executeInstruction() {
     this->Z = value == 0;
     this->C = value == 0xFFFFFFFF;
     this->V = value == 0x7fffffff;
+  }
+  // STMIA
+  else if (opcode >> 11 == 0b11000) {
+    const uint64_t Rn = (opcode >> 8) & 0x7;
+    const uint64_t registers = opcode & 0xff;
+    uint64_t address = this->registers[Rn];
+    for (uint8_t i = 0; i < 8; i++) {
+      if (registers & (1 << i)) {
+        this->writeUint32(address, this->registers[i]);
+        address += 4;
+      }
+    }
+    // Write back
+    if (!(registers & (1 << Rn))) {
+      this->registers[Rn] = address;
+    }
   }
   // STR (immediate)
   else if (opcode >> 11 == 0b01100) {
