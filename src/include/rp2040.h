@@ -30,6 +30,11 @@ private:
   const uint32_t SSI_DR0_OFFSET = 0x00000060;
   const uint32_t SSI_SR_BUSY_BITS = 0x00000001;
   const uint32_t SSI_SR_TFE_BITS = 0x00000004;
+  const uint32_t CLOCKS_BASE = 0x40008000;
+  const uint32_t CLK_REF_SELECTED = 0x38;
+  const uint32_t CLK_SYS_SELECTED = 0x44;
+
+  const uint8_t PC_REGISTER = 15;
 
   uint32_t signExtend8(uint32_t value);
   uint32_t signExtend16(uint32_t value);
