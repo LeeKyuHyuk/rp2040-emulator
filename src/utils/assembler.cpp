@@ -15,10 +15,14 @@ uint32_t opcodeADDsp2(uint32_t imm) {
   return (0b101100000 << 7) | ((imm >> 2) & 0x7f);
 }
 
-uint32_t opcodeADDSreg1(uint32_t Rd, uint32_t Rn, uint32_t Rm) {
+uint32_t opcodeADDSreg(uint32_t Rd, uint32_t Rn, uint32_t Rm) {
   return (0b0001100 << 9) | ((Rm & 0x7) << 6) | ((Rn & 7) << 3) | (Rd & 7);
 }
 
+uint32_t opcodeADDreg(uint32_t Rdn, uint32_t Rm) {
+  return (0b01000100 << 8) | ((Rdn & 0x8) << 4) | ((Rm & 0xf) << 3) |
+         (Rdn & 0x7);
+}
 uint32_t opcodeADR(uint32_t Rd, uint32_t imm8) {
   return (0b10100 << 11) | ((Rd & 7) << 8) | ((imm8 >> 2) & 0xff);
 }
@@ -47,14 +51,38 @@ uint32_t opcodeLDMIA(uint32_t Rn, uint32_t registers) {
   return (0b11001 << 11) | ((Rn & 0x7) << 8) | (registers & 0xff);
 }
 
+uint32_t opcodeLDRreg(uint32_t Rt, uint32_t Rn, uint32_t Rm) {
+  return (0b0101100 << 9) | ((Rm & 0x7) << 6) | ((Rn & 0x7) << 3) | (Rt & 0x7);
+}
+
 uint32_t opcodeLDRB(uint32_t Rt, uint32_t Rn, uint32_t imm5) {
   return (0b01111 << 11) | ((imm5 & 0x1f) << 6) | ((Rn & 0x7) << 3) |
          (Rt & 0x7);
 }
 
+uint32_t opcodeLDRBreg(uint32_t Rt, uint32_t Rn, uint32_t Rm) {
+  return (0b0101110 << 9) | ((Rm & 0x7) << 6) | ((Rn & 0x7) << 3) | (Rt & 0x7);
+}
+
 uint32_t opcodeLDRH(uint32_t Rt, uint32_t Rn, uint32_t imm5) {
   return (0b10001 << 11) | (((imm5 >> 1) & 0xf) << 6) | ((Rn & 0x7) << 3) |
          (Rt & 0x7);
+}
+
+uint32_t opcodeLDRHreg(uint32_t Rt, uint32_t Rn, uint32_t Rm) {
+  return (0b0101101 << 9) | ((Rm & 0x7) << 6) | ((Rn & 0x7) << 3) | (Rt & 0x7);
+}
+
+uint32_t opcodeLDRSB(uint32_t Rt, uint32_t Rn, uint32_t Rm) {
+  return (0b0101011 << 9) | ((Rm & 0x7) << 6) | ((Rn & 0x7) << 3) | (Rt & 0x7);
+}
+
+uint32_t opcodeLDRSH(uint32_t Rt, uint32_t Rn, uint32_t Rm) {
+  return (0b0101111 << 9) | ((Rm & 0x7) << 6) | ((Rn & 0x7) << 3) | (Rt & 0x7);
+}
+
+uint32_t opcodeLSLSreg(uint32_t Rdn, uint32_t Rm) {
+  return (0b0100000010 << 6) | ((Rm & 0x7) << 3) | (Rdn & 0x7);
 }
 
 uint32_t opcodeLSRS(uint32_t Rd, uint32_t Rm, uint32_t imm5) {
@@ -64,6 +92,16 @@ uint32_t opcodeLSRS(uint32_t Rd, uint32_t Rm, uint32_t imm5) {
 
 uint32_t opcodeMOV(uint32_t Rd, uint32_t Rm) {
   return (0b01000110 << 8) | ((Rd & 0x8 ? 1 : 0) << 7) | (Rm << 3) | (Rd & 0x7);
+}
+
+uint32_t opcodeMRS(uint32_t Rd, uint32_t specReg) {
+  return (0b1000 << 28) | ((Rd & 0xf) << 24) | ((specReg & 0xff) << 16) |
+         0b1111001111101111;
+}
+
+uint32_t opcodeMSR(uint32_t specReg, uint32_t Rn) {
+  return (0b10001000 << 24) | ((specReg & 0xff) << 16) | (0b111100111000 << 4) |
+         (Rn & 0xf);
 }
 
 uint32_t opcodeORRS(uint32_t Rn, uint32_t Rm) {
@@ -84,6 +122,33 @@ uint32_t opcodeSTMIA(uint32_t Rn, uint32_t registers) {
 
 uint32_t opcodeSBCS(uint32_t Rn, uint32_t Rm) {
   return (0b0100000110 << 6) | ((Rm & 0x7) << 3) | (Rn & 0x7);
+}
+
+uint32_t opcodeSTR(uint32_t Rt, uint32_t Rm, uint32_t imm5) {
+  return (0b01100 << 11) | (((imm5 >> 2) & 0x1f) << 6) | ((Rm & 0x7) << 3) |
+         (Rt & 0x7);
+}
+
+uint32_t opcodeSTRreg(uint32_t Rt, uint32_t Rn, uint32_t Rm) {
+  return (0b0101000 << 9) | ((Rm & 0x7) << 6) | ((Rn & 0x7) << 3) | (Rt & 0x7);
+}
+
+uint32_t opcodeSTRB(uint32_t Rt, uint32_t Rm, uint32_t imm5) {
+  return (0b01110 << 11) | ((imm5 & 0x1f) << 6) | ((Rm & 0x7) << 3) |
+         (Rt & 0x7);
+}
+
+uint32_t opcodeSTRBreg(uint32_t Rt, uint32_t Rn, uint32_t Rm) {
+  return (0b0101010 << 9) | ((Rm & 0x7) << 6) | ((Rn & 0x7) << 3) | (Rt & 0x7);
+}
+
+uint32_t opcodeSTRH(uint32_t Rt, uint32_t Rm, uint32_t imm5) {
+  return (0b10000 << 11) | (((imm5 >> 1) & 0x1f) << 6) | ((Rm & 0x7) << 3) |
+         (Rt & 0x7);
+}
+
+uint32_t opcodeSTRHreg(uint32_t Rt, uint32_t Rn, uint32_t Rm) {
+  return (0b0101001 << 9) | ((Rm & 0x7) << 6) | ((Rn & 0x7) << 3) | (Rt & 0x7);
 }
 
 uint32_t opcodeSUBS1(uint32_t Rd, uint32_t Rn, uint32_t imm3) {

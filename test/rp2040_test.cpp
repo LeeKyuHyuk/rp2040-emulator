@@ -11,6 +11,8 @@
 #define R6 6
 #define R7 7
 #define R8 8
+#define IP 12
+#define SP 13
 #define LR 14
 #define PC 15
 
@@ -192,8 +194,23 @@ TEST(execute_ldr_instruction_2, executeInstruction) {
   EXPECT_EQ(rp2040->registers[R3], 0x55);
 }
 
+// should execute an `ldr r3, [r5, r6]` instruction
+TEST(execute_ldr_instruction_3, executeInstruction) {
+  RP2040 *rp2040 = new RP2040("");
+  rp2040->setPC(0x10000000);
+  rp2040->flash16[0] = opcodeLDRreg(R3, R5, R6);
+  rp2040->registers[R5] = 0x20000000;
+  rp2040->registers[R6] = 0x8;
+  rp2040->sram[8] = 0x11;
+  rp2040->sram[9] = 0x42;
+  rp2040->sram[10] = 0x55;
+  rp2040->sram[11] = 0xff;
+  rp2040->executeInstruction();
+  EXPECT_EQ(rp2040->registers[R3], 0xff554211);
+}
+
 // should execute an `ldrb r4, [r2, 5]` instruction
-TEST(execute_ldrb_instruction, executeInstruction) {
+TEST(execute_ldrb_instruction_1, executeInstruction) {
   RP2040 *rp2040 = new RP2040("");
   rp2040->setPC(0x10000000);
   rp2040->flash16[0] = opcodeLDRB(R4, R2, 5);
@@ -202,6 +219,21 @@ TEST(execute_ldrb_instruction, executeInstruction) {
   rp2040->sram[6] = 0x77;
   rp2040->executeInstruction();
   EXPECT_EQ(rp2040->registers[R4], 0x66);
+}
+
+// should execute an `ldrb r3, [r5, r6]` instruction
+TEST(execute_ldrb_instruction_2, executeInstruction) {
+  RP2040 *rp2040 = new RP2040("");
+  rp2040->setPC(0x10000000);
+  rp2040->flash16[0] = opcodeLDRBreg(R3, R5, R6);
+  rp2040->registers[R5] = 0x20000000;
+  rp2040->registers[R6] = 0x8;
+  rp2040->sram[8] = 0x11;
+  rp2040->sram[9] = 0x42;
+  rp2040->sram[10] = 0x55;
+  rp2040->sram[11] = 0xff;
+  rp2040->executeInstruction();
+  EXPECT_EQ(rp2040->registers[R3], 0x11);
 }
 
 // should execute an `ldrh r3, [r7, #4]` instruction
@@ -232,11 +264,38 @@ TEST(execute_ldrh_instruction_2, executeInstruction) {
   EXPECT_EQ(rp2040->registers[R3], 0x3344);
 }
 
+// should execute an `ldrh r3, [r5, r6]` instruction
+TEST(execute_ldrh_instruction_3, executeInstruction) {
+  RP2040 *rp2040 = new RP2040("");
+  rp2040->setPC(0x10000000);
+  rp2040->flash16[0] = opcodeLDRHreg(R3, R5, R6);
+  rp2040->registers[R5] = 0x20000000;
+  rp2040->registers[R6] = 0x8;
+  rp2040->sram[8] = 0x11;
+  rp2040->sram[9] = 0x42;
+  rp2040->sram[10] = 0x55;
+  rp2040->sram[11] = 0xff;
+  rp2040->executeInstruction();
+  EXPECT_EQ(rp2040->registers[R3], 0x4211);
+}
+
+// should execute an `ldrsb r5, [r3, r5]` instruction
+TEST(execute_ldrsb_instruction, executeInstruction) {
+  RP2040 *rp2040 = new RP2040("");
+  rp2040->setPC(0x10000000);
+  rp2040->flash16[0] = opcodeLDRSB(R5, R3, R5);
+  rp2040->registers[R3] = 0x20000000;
+  rp2040->registers[R5] = 6;
+  rp2040->sram[6] = 0x85;
+  rp2040->executeInstruction();
+  EXPECT_EQ(rp2040->registers[R5], 0x80000005);
+}
+
 // should execute an `ldrsh r5, [r3, r5]` instruction
 TEST(execute_ldrsh_instruction, executeInstruction) {
   RP2040 *rp2040 = new RP2040("");
   rp2040->setPC(0x10000000);
-  rp2040->flash16[0] = 0x5F5D; // ldrsh r5, [r3, r5]
+  rp2040->flash16[0] = opcodeLDRSH(R5, R3, R5);
   rp2040->registers[R3] = 0x20000000;
   rp2040->registers[R5] = 0x6;
   rp2040->sram[6] = 0x55;
@@ -246,13 +305,26 @@ TEST(execute_ldrsh_instruction, executeInstruction) {
 }
 
 // should execute a `lsls r5, r5, #18` instruction
-TEST(execute_lsls_instruction, executeInstruction) {
+TEST(execute_lsls_instruction_1, executeInstruction) {
   RP2040 *rp2040 = new RP2040("");
   rp2040->setPC(0x10000000);
   rp2040->flash16[0] = 0x04AD; // lsls r5, r5, #18
   rp2040->registers[R5] = 0b00000000000000000011;
   rp2040->executeInstruction();
   EXPECT_EQ(rp2040->registers[R5], 0b11000000000000000000);
+  EXPECT_EQ(rp2040->getPC(), 0x10000002);
+  EXPECT_EQ(rp2040->C, false);
+}
+
+// should execute a `lsls r5, r0` instruction
+TEST(execute_lsls_instruction_2, executeInstruction) {
+  RP2040 *rp2040 = new RP2040("");
+  rp2040->setPC(0x10000000);
+  rp2040->flash16[0] = opcodeLSLSreg(R5, R0);
+  rp2040->registers[R5] = 0b00000000000000000011;
+  rp2040->registers[R0] = 0xff003302; // bottom byte: 02
+  rp2040->executeInstruction();
+  EXPECT_EQ(rp2040->registers[R5], 0b00000000000000001100);
   EXPECT_EQ(rp2040->getPC(), 0x10000002);
   EXPECT_EQ(rp2040->C, false);
 }
@@ -315,11 +387,26 @@ TEST(execute_sdmia_instruction, executeInstruction) {
 }
 
 // should execute a `str r6, [r4, #20]` instruction
-TEST(execute_str_instruction, executeInstruction) {
+TEST(execute_str_instruction_1, executeInstruction) {
   RP2040 *rp2040 = new RP2040("");
   rp2040->setPC(0x10000000);
-  rp2040->flash16[0] = 0x6166; // str r6, [r4, #20]
+  rp2040->flash16[0] = opcodeSTR(R6, R4, 20);
   rp2040->registers[R4] = RAM_START_ADDRESS + 0x20;
+  rp2040->registers[R6] = 0xF00D;
+  rp2040->executeInstruction();
+  uint32_t value;
+  memcpy(&value, &(rp2040->sram[0x20 + 20]), sizeof(uint32_t));
+  EXPECT_EQ(value, 0xF00D);
+  EXPECT_EQ(rp2040->getPC(), 0x10000002);
+}
+
+// should execute a `str r6, [r4, r5]` instruction
+TEST(execute_str_instruction_2, executeInstruction) {
+  RP2040 *rp2040 = new RP2040("");
+  rp2040->setPC(0x10000000);
+  rp2040->flash16[0] = opcodeSTRreg(R6, R4, R5);
+  rp2040->registers[R4] = RAM_START_ADDRESS + 0x20;
+  rp2040->registers[R5] = 20;
   rp2040->registers[R6] = 0xF00D;
   rp2040->executeInstruction();
   uint32_t value;
@@ -459,6 +546,88 @@ TEST(execute_subs_instruction_2, executeInstruction) {
   EXPECT_EQ(rp2040->V, true);
 }
 
+// should execute a `strb r6, [r4, #20]` instruction
+TEST(execute_strb_instruction_1, executeInstruction) {
+  RP2040 *rp2040 = new RP2040("");
+  rp2040->setPC(0x10000000);
+  rp2040->sram[0x20] = 0xF2;
+  rp2040->sram[0x21] = 0xF3;
+  rp2040->sram[0x22] = 0xF4;
+  rp2040->sram[0x23] = 0xF5;
+  rp2040->flash16[0] = opcodeSTRB(R6, R4, 0x1);
+  rp2040->registers[R4] = RAM_START_ADDRESS + 0x20;
+  rp2040->registers[R6] = 0xf055;
+  rp2040->executeInstruction();
+  // assert that the 2nd byte (at 0x21) changed to 0x55
+  EXPECT_EQ(rp2040->sram[0x20], 0xF2);
+  EXPECT_EQ(rp2040->sram[0x21], 0x55);
+  EXPECT_EQ(rp2040->sram[0x22], 0xF4);
+  EXPECT_EQ(rp2040->sram[0x23], 0xF5);
+  EXPECT_EQ(rp2040->getPC(), 0x10000002);
+}
+
+// should execute a `strb r6, [r4, r5]` instruction
+TEST(execute_strb_instruction_2, executeInstruction) {
+  RP2040 *rp2040 = new RP2040("");
+  rp2040->setPC(0x10000000);
+  rp2040->sram[0x20] = 0xF2;
+  rp2040->sram[0x21] = 0xF3;
+  rp2040->sram[0x22] = 0xF4;
+  rp2040->sram[0x23] = 0xF5;
+  rp2040->flash16[0] = opcodeSTRBreg(R6, R4, R5);
+  rp2040->registers[R4] = RAM_START_ADDRESS + 0x20;
+  rp2040->registers[R5] = 0x1;
+  rp2040->registers[R6] = 0xf055;
+  rp2040->executeInstruction();
+  // assert that the 2nd byte (at 0x21) changed to 0x55
+  EXPECT_EQ(rp2040->sram[0x20], 0xF2);
+  EXPECT_EQ(rp2040->sram[0x21], 0x55);
+  EXPECT_EQ(rp2040->sram[0x22], 0xF4);
+  EXPECT_EQ(rp2040->sram[0x23], 0xF5);
+  EXPECT_EQ(rp2040->getPC(), 0x10000002);
+}
+
+// should execute a `strh r6, [r4, #20]` instruction
+TEST(execute_strh_instruction_1, executeInstruction) {
+  RP2040 *rp2040 = new RP2040("");
+  rp2040->setPC(0x10000000);
+  rp2040->sram[0x20] = 0xF2;
+  rp2040->sram[0x21] = 0xF3;
+  rp2040->sram[0x22] = 0xF4;
+  rp2040->sram[0x23] = 0xF5;
+  rp2040->flash16[0] = opcodeSTRH(R6, R4, 0x2);
+  rp2040->registers[R4] = RAM_START_ADDRESS + 0x20;
+  rp2040->registers[R6] = 0x6655;
+  rp2040->executeInstruction();
+  // assert that the 3rd/4th byte (at 0x22) changed to 0x6655
+  EXPECT_EQ(rp2040->sram[0x20], 0xF2);
+  EXPECT_EQ(rp2040->sram[0x21], 0xF3);
+  EXPECT_EQ(rp2040->sram[0x22], 0x55);
+  EXPECT_EQ(rp2040->sram[0x23], 0x66);
+  EXPECT_EQ(rp2040->getPC(), 0x10000002);
+}
+
+// should execute a `strh r6, [r4, r1]` instruction
+TEST(execute_strh_instruction_2, executeInstruction) {
+  RP2040 *rp2040 = new RP2040("");
+  rp2040->setPC(0x10000000);
+  rp2040->sram[0x20] = 0xF2;
+  rp2040->sram[0x21] = 0xF3;
+  rp2040->sram[0x22] = 0xF4;
+  rp2040->sram[0x23] = 0xF5;
+  rp2040->flash16[0] = opcodeSTRHreg(R6, R4, R1);
+  rp2040->registers[R4] = RAM_START_ADDRESS + 0x20;
+  rp2040->registers[R1] = 0x2;
+  rp2040->registers[R6] = 0x6655;
+  rp2040->executeInstruction();
+  // assert that the 3rd/4th byte (at 0x22) changed to 0x6655
+  EXPECT_EQ(rp2040->sram[0x20], 0xF2);
+  EXPECT_EQ(rp2040->sram[0x21], 0xF3);
+  EXPECT_EQ(rp2040->sram[0x22], 0x55);
+  EXPECT_EQ(rp2040->sram[0x23], 0x66);
+  EXPECT_EQ(rp2040->getPC(), 0x10000002);
+}
+
 // should execute a `sub sp, 0x10` instruction
 TEST(execute_subs_instruction_3, executeInstruction) {
   RP2040 *rp2040 = new RP2040("");
@@ -555,13 +724,51 @@ TEST(execute_adcs_instruction_2, executeInstruction) {
 }
 
 // should execute a `add sp, 0x10` instruction
-TEST(execute_add_instruction, executeInstruction) {
+TEST(execute_add_instruction_1, executeInstruction) {
   RP2040 *rp2040 = new RP2040("");
   rp2040->setPC(0x10000000);
   rp2040->setSP(0x10000040);
   rp2040->flash16[0] = opcodeADDsp2(0x10);
   rp2040->executeInstruction();
   EXPECT_EQ(rp2040->getSP(), 0x10000050);
+}
+
+// should execute `add r1, ip` instruction
+TEST(execute_add_instruction_2, executeInstruction) {
+  RP2040 *rp2040 = new RP2040("");
+  rp2040->setPC(0x10000000);
+  rp2040->flash16[0] = opcodeADDreg(R1, IP);
+  rp2040->registers[R1] = 66;
+  rp2040->registers[IP] = 44;
+  rp2040->executeInstruction();
+  EXPECT_EQ(rp2040->registers[R1], 110);
+  EXPECT_EQ(rp2040->N, false);
+  EXPECT_EQ(rp2040->Z, false);
+  EXPECT_EQ(rp2040->C, false);
+  EXPECT_EQ(rp2040->V, false);
+}
+
+// should execute `add sp, r8` instruction and not update the flags
+TEST(execute_add_instruction_3, executeInstruction) {
+  RP2040 *rp2040 = new RP2040("");
+  rp2040->setPC(0x10000000);
+  rp2040->setSP(0x20030000);
+  rp2040->Z = true;
+  rp2040->flash16[0] = opcodeADDreg(SP, R8);
+  rp2040->registers[R8] = 0x11;
+  rp2040->executeInstruction();
+  EXPECT_EQ(rp2040->getSP(), 0x20030011);
+  EXPECT_EQ(rp2040->Z, true); // assert it didn't update the flags
+}
+
+// should execute `add pc, r8` instruction
+TEST(execute_add_instruction_4, executeInstruction) {
+  RP2040 *rp2040 = new RP2040("");
+  rp2040->setPC(0x10000000);
+  rp2040->flash16[0] = opcodeADDreg(PC, R8);
+  rp2040->registers[R8] = 0x11;
+  rp2040->executeInstruction();
+  EXPECT_EQ(rp2040->getPC(), 0x10000014);
 }
 
 // should execute `adds r1, #1` instruction
@@ -611,7 +818,7 @@ TEST(execute_adds_instruction_3, executeInstruction) {
 TEST(execute_adds_instruction_4, executeInstruction) {
   RP2040 *rp2040 = new RP2040("");
   rp2040->setPC(0x10000000);
-  rp2040->flash16[0] = opcodeADDSreg1(R1, R2, R7);
+  rp2040->flash16[0] = opcodeADDSreg(R1, R2, R7);
   rp2040->registers[R2] = 2;
   rp2040->registers[R7] = 27;
   rp2040->executeInstruction();

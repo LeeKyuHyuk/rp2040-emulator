@@ -34,6 +34,9 @@ private:
   const uint32_t CLK_REF_SELECTED = 0x38;
   const uint32_t CLK_SYS_SELECTED = 0x44;
 
+  const uint32_t SYSTEM_CONTROL_BLOCK = 0xe000ed00;
+  const uint32_t OFFSET_VTOR = 0x8;
+
   const uint8_t PC_REGISTER = 15;
 
   uint32_t signExtend8(uint32_t value);
@@ -74,6 +77,8 @@ public:
   uint16_t readUint16(uint32_t address);
   uint8_t readUint8(uint32_t address);
   void writeUint32(uint32_t address, uint32_t value);
+  void writeUint16(uint32_t address, uint16_t value);
+  void writeUint8(uint32_t address, uint8_t value);
 
   void executeInstruction();
 };
