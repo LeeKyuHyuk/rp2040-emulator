@@ -25,6 +25,9 @@ TEST(add_1, assembler) { EXPECT_EQ(opcodeADDsp2(12), 0xb003); }
 // should correctly encode an `add r1, ip` instruction
 TEST(add_2, assembler) { EXPECT_EQ(opcodeADDreg(R1, IP), 0x4461); }
 
+// should correctly encode an `add r1, sp, #4
+TEST(add_3, assembler) { EXPECT_EQ(opcodeADDspPlusImm(R1, 4), 0xa901); }
+
 // should correctly encode an `adds r0, r3, #0` instruction
 TEST(adds_1, assembler) { EXPECT_EQ(opcodeADDS1(R0, R3, 0), 0x1c18); }
 
@@ -67,7 +70,10 @@ TEST(ldmia, assembler) {
 TEST(lsls, assembler) { EXPECT_EQ(opcodeLSLSreg(R5, R0), 0x4085); }
 
 // should correctly encode an `lsrs r1, r1, #1` instruction
-TEST(lsrs, assembler) { EXPECT_EQ(opcodeLSRS(R1, R1, 1), 0x0849); }
+TEST(lsrs_1, assembler) { EXPECT_EQ(opcodeLSRS(R1, R1, 1), 0x0849); }
+
+// should correctly encode an `lsrs r1, r1, #1` instruction
+TEST(lsrs_2, assembler) { EXPECT_EQ(opcodeLSRSreg(R0, R4), 0x40e0); }
 
 // should correctly encode an `ldr r3, [r3, r4]` instruction
 TEST(ldr, assembler) { EXPECT_EQ(opcodeLDRreg(R3, R3, R4), 0x591b); }
@@ -99,6 +105,9 @@ TEST(mrs, assembler) { EXPECT_EQ(opcodeMRS(R6, PRIMASK), 0x8610f3ef); }
 // should correctly encode an `msr PRIMASK, r6` instruction
 TEST(msr, assembler) { EXPECT_EQ(opcodeMSR(PRIMASK, R6), 0x8810f386); }
 
+// should correctly encode an `mvns r3, r3` instruction
+TEST(mvns, assembler) { EXPECT_EQ(opcodeMVNS(R3, R3), 0x43db); }
+
 // should correctly encode an `prrs r3, r0` instruction
 TEST(prrs, assembler) { EXPECT_EQ(opcodeORRS(R3, R0), 0x4303); }
 
@@ -121,6 +130,9 @@ TEST(str_1, assembler) { EXPECT_EQ(opcodeSTR(R6, R4, 20), 0x6166); }
 
 // should correctly encode an `str r2, [r1, r4]` instruction
 TEST(str_2, assembler) { EXPECT_EQ(opcodeSTRreg(R2, R1, R4), 0x510a); }
+
+// should correctly encode an `str r1, [sp, #4]` instruction
+TEST(str_3, assembler) { EXPECT_EQ(opcodeSTRsp(R1, 4), 0x9101); }
 
 // should correctly encode an `strb r3, [r2, #0]` instruction
 TEST(strb_1, assembler) { EXPECT_EQ(opcodeSTRB(R3, R2, 0), 0x7013); }

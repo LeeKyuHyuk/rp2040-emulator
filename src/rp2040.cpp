@@ -242,6 +242,12 @@ void RP2040::executeInstruction() {
               (((int)leftValue | 0) <= 0 && ((int)rightValue | 0) <= 0 &&
                ((int)result | 0) > 0);
   }
+  // ADD (register = SP plus immediate)
+  else if (opcode >> 11 == 0b10101) {
+    const uint64_t imm8 = opcode & 0xff;
+    const uint64_t Rd = (opcode >> 8) & 0x7;
+    this->registers[Rd] = this->getSP() + (imm8 << 2);
+  }
   // ADD (SP plus immediate)
   else if (opcode >> 7 == 0b101100000) {
     const uint64_t imm32 = (opcode & 0x7f) << 2;
@@ -348,6 +354,11 @@ void RP2040::executeInstruction() {
     this->N = !!(result & 0x80000000);
     this->Z = result == 0;
   }
+  // BKPT
+  else if (opcode >> 8 == 0b10111110) {
+    const uint64_t imm8 = opcode & 0xff;
+    cout << "Breakpoint! 0x" << hex << imm8 << endl;
+  }
   // BL
   else if (opcode >> 11 == 0b11110 && opcode2 >> 14 == 0b11 &&
            ((opcode2 >> 12) & 0x1) == 1) {
@@ -398,6 +409,10 @@ void RP2040::executeInstruction() {
     this->C = leftValue >= rightValue;
     this->V = (leftValue > 0 && rightValue < 0 && result < 0) ||
               (leftValue < 0 && rightValue > 0 && result > 0);
+  } else if (opcode == 0xb672) {
+    cout << "ignoring cpsid i" << endl;
+  } else if (opcode == 0xb662) {
+    cout << "ignoring cpsie i" << endl;
   }
   // DMB SY
   else if (opcode == 0xf3bf && opcode2 == 0x8f5f) {
@@ -425,6 +440,13 @@ void RP2040::executeInstruction() {
     const uint64_t Rn = (opcode >> 3) & 0x7;
     const uint64_t Rt = opcode & 0x7;
     const uint64_t addr = this->registers[Rn] + imm5;
+    this->registers[Rt] = this->readUint32(addr);
+  }
+  // LDR (sp + immediate)
+  else if (opcode >> 11 == 0b10011) {
+    const uint64_t Rt = (opcode >> 8) & 0x7;
+    const uint64_t imm8 = opcode & 0xff;
+    const uint64_t addr = this->getSP() + (imm8 << 2);
     this->registers[Rt] = this->readUint32(addr);
   }
   // LDR (literal)
@@ -519,7 +541,7 @@ void RP2040::executeInstruction() {
     this->Z = result == 0;
     this->C = shiftCount ? !!(input & (1 << (32 - shiftCount))) : this->C;
   }
-  // LSLR (immediate)
+  // LSRS (immediate)
   else if (opcode >> 11 == 0b00001) {
     const uint64_t imm5 = (opcode >> 6) & 0x1f;
     const uint64_t Rm = (opcode >> 3) & 0x7;
@@ -530,6 +552,18 @@ void RP2040::executeInstruction() {
     this->N = !!(result & 0x80000000);
     this->Z = result == 0;
     this->C = !!((input >> (imm5 ? imm5 - 1 : 31)) & 0x1);
+  }
+  // LSRS (register)
+  else if (opcode >> 6 == 0b0100000011) {
+    const uint64_t Rm = (opcode >> 3) & 0x7;
+    const uint64_t Rdn = opcode & 0x7;
+    const uint64_t shiftAmount = this->registers[Rm] & 0xff;
+    const uint64_t input = this->registers[Rdn];
+    const uint64_t result = input >> shiftAmount;
+    this->registers[Rdn] = result;
+    this->N = !!(result & 0x80000000);
+    this->Z = result == 0;
+    this->C = !!((input >> (shiftAmount - 1)) & 0x1);
   }
   // MOV
   else if (opcode >> 8 == 0b01000110) {
@@ -555,6 +589,15 @@ void RP2040::executeInstruction() {
   else if (opcode >> 4 == 0b111100111000 && opcode2 >> 8 == 0b10001000) {
     this->setPC(this->getPC() + 2);
     cout << "MSR!" << endl;
+  }
+  // MVNS
+  else if (opcode >> 6 == 0b0100001111) {
+    const uint64_t Rm = (opcode >> 3) & 7;
+    const uint64_t Rd = opcode & 7;
+    const uint64_t result = ~this->registers[Rm];
+    this->registers[Rd] = result;
+    this->N = !!(result & 0x80000000);
+    this->Z = result == 0;
   }
   // ORRS (Encoding T2)
   else if (opcode >> 6 == 0b0100001100) {
@@ -625,6 +668,10 @@ void RP2040::executeInstruction() {
     this->C = operand1 >= operand2;
     this->V = ((int)operand1 | 0) < 0 && operand2 > 0 && result > 0;
   }
+  // SEV
+  else if (opcode == 0b1011111101000000) {
+    cout << "SEV" << endl;
+  }
   // STMIA
   else if (opcode >> 11 == 0b11000) {
     const uint64_t Rn = (opcode >> 8) & 0x7;
@@ -647,6 +694,13 @@ void RP2040::executeInstruction() {
     const uint64_t Rn = (opcode >> 3) & 0x7;
     const uint64_t Rt = opcode & 0x7;
     const uint64_t address = this->registers[Rn] + imm5;
+    this->writeUint32(address, this->registers[Rt]);
+  }
+  // STR (sp + immediate)
+  else if (opcode >> 11 == 0b10010) {
+    const uint64_t Rt = (opcode >> 8) & 0x7;
+    const uint64_t imm8 = opcode & 0xff;
+    const uint64_t address = this->getSP() + (imm8 << 2);
     this->writeUint32(address, this->registers[Rt]);
   }
   // STR (register)

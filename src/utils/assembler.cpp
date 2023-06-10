@@ -11,6 +11,9 @@ uint32_t opcodeADDS2(uint32_t Rdn, uint32_t imm8) {
   return (0b00110 << 11) | ((Rdn & 7) << 8) | (imm8 & 0xff);
 }
 
+uint32_t opcodeADDspPlusImm(uint32_t Rd, uint32_t imm8) {
+  return (0b10101 << 11) | ((Rd & 7) << 8) | ((imm8 >> 2) & 0xff);
+}
 uint32_t opcodeADDsp2(uint32_t imm) {
   return (0b101100000 << 7) | ((imm >> 2) & 0x7f);
 }
@@ -60,6 +63,10 @@ uint32_t opcodeLDRB(uint32_t Rt, uint32_t Rn, uint32_t imm5) {
          (Rt & 0x7);
 }
 
+uint32_t opcodeLDRsp(uint32_t Rt, uint32_t imm8) {
+  return (0b10011 << 11) | ((Rt & 7) << 8) | ((imm8 >> 2) & 0xff);
+}
+
 uint32_t opcodeLDRBreg(uint32_t Rt, uint32_t Rn, uint32_t Rm) {
   return (0b0101110 << 9) | ((Rm & 0x7) << 6) | ((Rn & 0x7) << 3) | (Rt & 0x7);
 }
@@ -90,6 +97,10 @@ uint32_t opcodeLSRS(uint32_t Rd, uint32_t Rm, uint32_t imm5) {
          (Rd & 0x7);
 }
 
+uint32_t opcodeLSRSreg(uint32_t Rdn, uint32_t Rm) {
+  return (0b0100000011 << 6) | ((Rm & 0x7) << 3) | (Rdn & 0x7);
+}
+
 uint32_t opcodeMOV(uint32_t Rd, uint32_t Rm) {
   return (0b01000110 << 8) | ((Rd & 0x8 ? 1 : 0) << 7) | (Rm << 3) | (Rd & 0x7);
 }
@@ -102,6 +113,10 @@ uint32_t opcodeMRS(uint32_t Rd, uint32_t specReg) {
 uint32_t opcodeMSR(uint32_t specReg, uint32_t Rn) {
   return (0b10001000 << 24) | ((specReg & 0xff) << 16) | (0b111100111000 << 4) |
          (Rn & 0xf);
+}
+
+uint32_t opcodeMVNS(uint32_t Rd, uint32_t Rm) {
+  return (0b0100001111 << 6) | ((Rm & 7) << 3) | (Rd & 7);
 }
 
 uint32_t opcodeORRS(uint32_t Rn, uint32_t Rm) {
@@ -127,6 +142,10 @@ uint32_t opcodeSBCS(uint32_t Rn, uint32_t Rm) {
 uint32_t opcodeSTR(uint32_t Rt, uint32_t Rm, uint32_t imm5) {
   return (0b01100 << 11) | (((imm5 >> 2) & 0x1f) << 6) | ((Rm & 0x7) << 3) |
          (Rt & 0x7);
+}
+
+uint32_t opcodeSTRsp(uint32_t Rt, uint32_t imm8) {
+  return (0b10010 << 11) | ((Rt & 7) << 8) | ((imm8 >> 2) & 0xff);
 }
 
 uint32_t opcodeSTRreg(uint32_t Rt, uint32_t Rn, uint32_t Rm) {
