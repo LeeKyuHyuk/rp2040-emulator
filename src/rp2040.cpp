@@ -103,8 +103,11 @@ bool RP2040::checkCondition(uint32_t cond) { // Evaluate base condition.
 
 uint32_t RP2040::readUint32(uint32_t address) {
   if (address & 0x3) {
-    throw new runtime_error("read from address " + format("0x{:x}", address) +
-                            ", which is not 32 bit aligned");
+    string errorMsg = "[ERROR] read from address " + format("0x{:x}", address) +
+                      ", which is not 32 bit aligned";
+    cout << endl;
+    cout << errorMsg << endl;
+    throw new runtime_error(errorMsg);
   }
   uint32_t value;
   if (address < BOOT_ROM_SIZE * 4) {
@@ -327,6 +330,18 @@ void RP2040::executeInstruction() {
     this->N = !!(result & 0x80000000);
     this->Z = (result & 0xffffffff) == 0;
   }
+  // ASRS (immediate)
+  else if (opcode >> 11 == 0b00010) {
+    const uint64_t imm5 = (opcode >> 6) & 0x1f;
+    const uint64_t Rm = (opcode >> 3) & 0x7;
+    const uint64_t Rd = opcode & 0x7;
+    const uint64_t input = this->registers[Rm];
+    const uint64_t result = imm5 ? ((int)this->registers[Rm] >> imm5) : 0;
+    this->registers[Rd] = result;
+    this->N = !!(result & 0x80000000);
+    this->Z = (result & 0xffffffff) == 0;
+    this->C = !!((input >> (imm5 ? imm5 - 1 : 31)) & 0x1);
+  }
   // B (with cond)
   else if (opcode >> 12 == 0b1101) {
     uint64_t imm8 = (opcode & 0xff) << 1;
@@ -417,6 +432,15 @@ void RP2040::executeInstruction() {
   // DMB SY
   else if (opcode == 0xf3bf && opcode2 == 0x8f5f) {
     this->setPC(this->getPC() + 2);
+  }
+  // EORS
+  else if (opcode >> 6 == 0b0100000001) {
+    const uint64_t Rm = (opcode >> 3) & 0x7;
+    const uint64_t Rdn = opcode & 0x7;
+    const uint64_t result = this->registers[Rm] ^ this->registers[Rdn];
+    this->registers[Rdn] = result;
+    this->N = !!(result & 0x80000000);
+    this->Z = result == 0;
   }
   // LDMIA
   else if (opcode >> 11 == 0b11001) {
@@ -786,6 +810,12 @@ void RP2040::executeInstruction() {
     this->Z = leftValue == rightValue;
     this->C = leftValue >= rightValue;
     this->V = ((int)leftValue | 0) < 0 && rightValue > 0 && result > 0;
+  }
+  // SXTB
+  else if (opcode >> 6 == 0b1011001001) {
+    const uint64_t Rm = (opcode >> 3) & 0x7;
+    const uint64_t Rd = opcode & 0x7;
+    this->registers[Rd] = (((int)this->registers[Rm] & 0xff) << 24) >> 24;
   }
   // TST
   else if (opcode >> 6 == 0b0100001000) {

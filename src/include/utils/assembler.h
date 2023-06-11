@@ -21,6 +21,8 @@ uint32_t opcodeADR(uint32_t Rd, uint32_t imm8);
 
 uint32_t opcodeANDS(uint32_t Rn, uint32_t Rm);
 
+uint32_t opcodeASRS(uint32_t Rd, uint32_t Rm, uint32_t imm5);
+
 uint32_t opcodeBICS(uint32_t Rdn, uint32_t Rm);
 
 uint32_t opcodeBL(uint32_t imm);
@@ -28,6 +30,8 @@ uint32_t opcodeBL(uint32_t imm);
 uint32_t opcodeBLX(uint32_t Rm);
 
 uint32_t opcodeBX(uint32_t Rm);
+
+uint32_t opcodeEORS(uint32_t Rdn, uint32_t Rm);
 
 uint32_t opcodeLDMIA(uint32_t Rn, uint32_t registers);
 
@@ -92,6 +96,8 @@ uint32_t opcodeSUBS2(uint32_t Rdn, uint32_t imm8);
 uint32_t opcodeSUBSreg(uint32_t Rd, uint32_t Rn, uint32_t Rm);
 
 uint32_t opcodeSUBsp(uint32_t imm);
+
+uint32_t opcodeSXTB(uint32_t Rd, uint32_t Rm);
 
 uint32_t opcodeUXTB(uint32_t Rd, uint32_t Rm);
 

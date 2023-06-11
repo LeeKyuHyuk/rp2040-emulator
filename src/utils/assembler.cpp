@@ -32,6 +32,11 @@ uint32_t opcodeADR(uint32_t Rd, uint32_t imm8) {
 uint32_t opcodeANDS(uint32_t Rn, uint32_t Rm) {
   return (0b0100000000 << 6) | ((Rm & 7) << 3) | (Rn & 0x7);
 }
+uint32_t opcodeASRS(uint32_t Rd, uint32_t Rm, uint32_t imm5) {
+  return (0b00010 << 11) | ((imm5 & 0x1f) << 6) | ((Rm & 0x7) << 3) |
+         (Rd & 0x7);
+}
+
 uint32_t opcodeBICS(uint32_t Rdn, uint32_t Rm) {
   return (0b0100001110 << 6) | ((Rm & 7) << 3) | (Rdn & 7);
 }
@@ -49,6 +54,10 @@ uint32_t opcodeBL(uint32_t imm) {
 uint32_t opcodeBLX(uint32_t Rm) { return (0b010001111 << 7) | (Rm << 3); }
 
 uint32_t opcodeBX(uint32_t Rm) { return (0b010001110 << 7) | (Rm << 3); }
+
+uint32_t opcodeEORS(uint32_t Rdn, uint32_t Rm) {
+  return (0b0100000001 << 6) | ((Rm & 0x7) << 3) | (Rdn & 0x7);
+}
 
 uint32_t opcodeLDMIA(uint32_t Rn, uint32_t registers) {
   return (0b11001 << 11) | ((Rn & 0x7) << 8) | (registers & 0xff);
@@ -183,6 +192,10 @@ uint32_t opcodeSUBSreg(uint32_t Rd, uint32_t Rn, uint32_t Rm) {
 
 uint32_t opcodeSUBsp(uint32_t imm) {
   return (0b101100001 << 7) | ((imm >> 2) & 0x7f);
+}
+
+uint32_t opcodeSXTB(uint32_t Rd, uint32_t Rm) {
+  return (0b1011001001 << 6) | ((Rm & 7) << 3) | (Rd & 7);
 }
 
 uint32_t opcodeUXTB(uint32_t Rd, uint32_t Rm) {

@@ -121,6 +121,19 @@ TEST(execute_mov_instruction_2, executeInstruction) {
   EXPECT_EQ(rp2040->registers[R6], 0x50);
 }
 
+// should execute an `eors r1, r3` instruction
+TEST(execute_eors_instruction, executeInstruction) {
+  RP2040 *rp2040 = new RP2040("");
+  rp2040->setPC(0x10000000);
+  rp2040->flash16[0] = opcodeEORS(R1, R3);
+  rp2040->registers[R1] = 0xf0f0f0f0;
+  rp2040->registers[R3] = 0x08ff3007;
+  rp2040->executeInstruction();
+  EXPECT_EQ(rp2040->registers[R1], 0xf80fc0f7);
+  EXPECT_EQ(rp2040->N, true);
+  EXPECT_EQ(rp2040->Z, false);
+}
+
 // should execute a `mov r3, r8` instruction
 TEST(execute_mov_instruction_3, executeInstruction) {
   RP2040 *rp2040 = new RP2040("");
@@ -715,6 +728,26 @@ TEST(execute_subs_instruction_5, executeInstruction) {
   EXPECT_EQ(rp2040->V, false);
 }
 
+// should execute a `sxtb r2, r2` instruction with sign bit 1
+TEST(execute_sxtb_instruction_1, executeInstruction) {
+  RP2040 *rp2040 = new RP2040("");
+  rp2040->setPC(0x10000000);
+  rp2040->flash16[0] = opcodeSXTB(R2, R2);
+  rp2040->registers[R2] = 0x22446688;
+  rp2040->executeInstruction();
+  EXPECT_EQ(rp2040->registers[R2], 0xffffff88);
+}
+
+// should execute a `sxtb r2, r2` instruction with sign bit 0
+TEST(execute_sxtb_instruction_2, executeInstruction) {
+  RP2040 *rp2040 = new RP2040("");
+  rp2040->setPC(0x10000000);
+  rp2040->flash16[0] = opcodeSXTB(R2, R2);
+  rp2040->registers[R2] = 0x12345678;
+  rp2040->executeInstruction();
+  EXPECT_EQ(rp2040->registers[R2], 0x78);
+}
+
 // should execute an `tst r1, r3` instruction when the result is negative
 TEST(execute_tst_instruction_1, executeInstruction) {
   RP2040 *rp2040 = new RP2040("");
@@ -910,6 +943,20 @@ TEST(execute_ands_instruction, executeInstruction) {
   EXPECT_EQ(rp2040->registers[R5], 0xf00f0000);
   EXPECT_EQ(rp2040->N, true);
   EXPECT_EQ(rp2040->Z, false);
+}
+
+// should execute an `asrs r3, r2, #31` instruction
+TEST(execute_asrs_instruction, executeInstruction) {
+  RP2040 *rp2040 = new RP2040("");
+  rp2040->setPC(0x10000000);
+  rp2040->flash16[0] = opcodeASRS(R3, R2, 31);
+  rp2040->registers[R2] = 0x80000000;
+  rp2040->executeInstruction();
+  EXPECT_EQ(rp2040->registers[R3], 0xffffffff);
+  EXPECT_EQ(rp2040->getPC(), 0x10000002);
+  EXPECT_EQ(rp2040->N, true);
+  EXPECT_EQ(rp2040->Z, false);
+  EXPECT_EQ(rp2040->C, false);
 }
 
 // should execute `bics r0, r3` correctly

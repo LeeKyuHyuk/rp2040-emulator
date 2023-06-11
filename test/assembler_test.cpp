@@ -43,6 +43,9 @@ TEST(adds_4, assembler) { EXPECT_EQ(opcodeANDS(R5, R0), 0x4005); }
 // should correctly encode an `adr r4, #52` instruction
 TEST(adr, assembler) { EXPECT_EQ(opcodeADR(R4, 52), 0xa40d); }
 
+// should correctly encode an `asrs r3, r2, #31` instruction
+TEST(asrs, assembler) { EXPECT_EQ(opcodeASRS(R3, R2, 31), 0x17d3); }
+
 // should correctly encode an `bics r0, r3` instruction
 TEST(bics, assembler) { EXPECT_EQ(opcodeBICS(R0, R3), 0x4398); }
 
@@ -60,6 +63,9 @@ TEST(blx, assembler) { EXPECT_EQ(opcodeBLX(R1), 0x4788); }
 
 // should correctly encode an `bx lr` instruction
 TEST(bx, assembler) { EXPECT_EQ(opcodeBX(LR), 0x4770); }
+
+// should correctly encode an `eors r1, r3` instruction
+TEST(eors, assembler) { EXPECT_EQ(opcodeEORS(R1, R3), 0x4059); }
 
 // should correctly encode an `ldmia r0!, {r1, r2}` instruction
 TEST(ldmia, assembler) {
@@ -157,6 +163,9 @@ TEST(subs_2, assembler) { EXPECT_EQ(opcodeSUBSreg(R1, R1, R0), 0x1a09); }
 
 // should correctly encode an `subs r3, #13` instruction
 TEST(subs_3, assembler) { EXPECT_EQ(opcodeSUBS2(R3, 13), 0x3b0d); }
+
+// should correctly encode an `sxtb r2, r2` instruction
+TEST(sxtb, assembler) { EXPECT_EQ(opcodeSXTB(R2, R2), 0xb252); }
 
 // should correctly encode an `uxtb r3, r3` instruction
 TEST(uxtb, assembler) { EXPECT_EQ(opcodeUXTB(R3, R3), 0xb2db); }
