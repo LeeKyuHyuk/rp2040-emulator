@@ -337,7 +337,7 @@ TEST(execute_ldrsb_instruction, executeInstruction) {
   rp2040->registers[R5] = 6;
   rp2040->sram[6] = 0x85;
   rp2040->executeInstruction();
-  EXPECT_EQ(rp2040->registers[R5], 0x80000005);
+  EXPECT_EQ(rp2040->registers[R5], 0xffffff85);
 }
 
 // should execute an `ldrsh r5, [r3, r5]` instruction
@@ -350,7 +350,7 @@ TEST(execute_ldrsh_instruction, executeInstruction) {
   rp2040->sram[6] = 0x55;
   rp2040->sram[7] = 0xF0;
   rp2040->executeInstruction();
-  EXPECT_EQ(rp2040->registers[R5], 0x80007055);
+  EXPECT_EQ(rp2040->registers[R5], 0xfffff055);
 }
 
 // should execute a `lsls r5, r5, #18` instruction

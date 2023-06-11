@@ -6,12 +6,8 @@
 #include <iostream>
 #include <vector>
 
-uint32_t RP2040::signExtend8(uint32_t value) {
-  return value & 0x80 ? 0x80000000 + (value & 0x7f) : value;
-}
-uint32_t RP2040::signExtend16(uint32_t value) {
-  return value & 0x8000 ? 0x80000000 + (value & 0x7fff) : value;
-}
+uint32_t RP2040::signExtend8(int value) { return (value << 24) >> 24; }
+uint32_t RP2040::signExtend16(int value) { return (value << 16) >> 16; }
 
 RP2040::RP2040(string hex) {
   setSP(bootrom[0]);
@@ -815,7 +811,7 @@ void RP2040::executeInstruction() {
   else if (opcode >> 6 == 0b1011001001) {
     const uint64_t Rm = (opcode >> 3) & 0x7;
     const uint64_t Rd = opcode & 0x7;
-    this->registers[Rd] = (((int)this->registers[Rm] & 0xff) << 24) >> 24;
+    this->registers[Rd] = signExtend8(this->registers[Rm]);
   }
   // TST
   else if (opcode >> 6 == 0b0100001000) {

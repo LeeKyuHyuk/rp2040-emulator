@@ -39,8 +39,8 @@ private:
 
   const uint8_t PC_REGISTER = 15;
 
-  uint32_t signExtend8(uint32_t value);
-  uint32_t signExtend16(uint32_t value);
+  uint32_t signExtend8(int value);
+  uint32_t signExtend16(int value);
 
 public:
   uint8_t sram[SRAM_SIZE] = {
