@@ -59,6 +59,14 @@ RP2040::RP2040(string hex) {
                             cout << "we read from VicTOR" << endl;
                             return VTOR;
                           });
+  for (uint64_t spinlockIndex = 0; spinlockIndex < SIO_SPINLOCK_COUNT;
+       spinlockIndex++) {
+    this->readHooks.emplace(SIO_START_ADDRESS + SIO_SPINLOCK0 +
+                                4 * spinlockIndex,
+                            [&](uint32_t address) -> uint32_t {
+                              return 0; // TODO implement spinlock mechanism
+                            });
+  }
 
   loadHex(hex, this->flash);
 }
