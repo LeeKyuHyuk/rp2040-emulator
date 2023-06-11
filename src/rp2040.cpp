@@ -33,6 +33,7 @@ RP2040::RP2040(string hex) {
       [&](uint32_t address) -> uint32_t { return this->SSI_SR_TFE_BITS; });
 
   uint32_t dr0 = 0;
+  // TODO: there is probably a nasty bug hiding below!
   this->writeHooks.emplace(XIP_SSI_BASE + SSI_DR0_OFFSET,
                            [&](uint32_t address, uint32_t value) -> void {
                              const uint8_t CMD_READ_STATUS = 0x05;
@@ -49,16 +50,11 @@ RP2040::RP2040(string hex) {
                           [&](uint32_t address) -> uint32_t { return 1; });
 
   uint64_t VTOR = 0;
-  this->writeHooks.emplace(SYSTEM_CONTROL_BLOCK + OFFSET_VTOR,
-                           [&](uint32_t address, uint32_t value) -> void {
-                             cout << "we write to VicTOR" << endl;
-                             VTOR = value;
-                           });
+  this->writeHooks.emplace(
+      SYSTEM_CONTROL_BLOCK + OFFSET_VTOR,
+      [&](uint32_t address, uint32_t newValue) -> void { VTOR = newValue; });
   this->readHooks.emplace(SYSTEM_CONTROL_BLOCK + OFFSET_VTOR,
-                          [&](uint32_t address) -> uint32_t {
-                            cout << "we read from VicTOR" << endl;
-                            return VTOR;
-                          });
+                          [&](uint32_t address) -> uint32_t { return VTOR; });
   for (uint64_t spinlockIndex = 0; spinlockIndex < SIO_SPINLOCK_COUNT;
        spinlockIndex++) {
     this->readHooks.emplace(SIO_START_ADDRESS + SIO_SPINLOCK0 +
