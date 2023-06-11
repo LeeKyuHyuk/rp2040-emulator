@@ -42,6 +42,9 @@ private:
   uint32_t signExtend8(int value);
   uint32_t signExtend16(int value);
 
+  bool stopped = false;
+  uint64_t breakCount = 0;
+
 public:
   uint8_t sram[SRAM_SIZE] = {
       0x00,
@@ -63,6 +66,10 @@ public:
   bool Z = false;
   bool V = false;
 
+  // Debugging
+  void onBreak(uint32_t code);
+  uint64_t getBreakCount();
+
   RP2040(string hex);
 
   uint32_t getSP();
@@ -81,6 +88,8 @@ public:
   void writeUint8(uint32_t address, uint8_t value);
 
   void executeInstruction();
+  void execute();
+  void stop();
 };
 
 #endif

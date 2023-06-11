@@ -9,6 +9,15 @@
 uint32_t RP2040::signExtend8(int value) { return (value << 24) >> 24; }
 uint32_t RP2040::signExtend16(int value) { return (value << 16) >> 16; }
 
+void RP2040::onBreak(uint32_t code) {
+  // TODO: raise HardFault exception
+  cerr << "Breakpoint! 0x" << hex << code << endl;
+  this->stopped = true;
+  breakCount += 1;
+}
+
+uint64_t RP2040::getBreakCount() { return this->breakCount; }
+
 RP2040::RP2040(string hex) {
   setSP(bootrom[0]);
   setPC(bootrom[1] & 0xFFFFFFFE);
@@ -143,7 +152,13 @@ uint8_t RP2040::readUint8(uint32_t address) {
 }
 
 void RP2040::writeUint32(uint32_t address, uint32_t value) {
-  if (address >= RAM_START_ADDRESS && address < RAM_START_ADDRESS + SRAM_SIZE) {
+  if (address < BOOT_ROM_SIZE * 4) {
+    bootrom[address / 4] = value;
+  } else if (address >= FLASH_START_ADDRESS && address < FLASH_END_ADDRESS) {
+    memcpy(&(this->flash[address - FLASH_START_ADDRESS]), &value,
+           sizeof(uint32_t));
+  } else if (address >= RAM_START_ADDRESS &&
+             address < RAM_START_ADDRESS + SRAM_SIZE) {
     memcpy(&(this->sram[address - RAM_START_ADDRESS]), &value,
            sizeof(uint32_t));
   } else if (address >= SIO_START_ADDRESS &&
@@ -186,6 +201,8 @@ void RP2040::writeUint32(uint32_t address, uint32_t value) {
     // corresponding key in the writeHooks map
     if (iter != this->writeHooks.end()) {
       return (iter->second)(address, value);
+    } else {
+      cerr << "Write to undefined address: 0x" << hex << address << endl;
     }
   }
 }
@@ -339,7 +356,7 @@ void RP2040::executeInstruction() {
     this->C = !!((input >> (imm5 ? imm5 - 1 : 31)) & 0x1);
   }
   // B (with cond)
-  else if (opcode >> 12 == 0b1101) {
+  else if (opcode >> 12 == 0b1101 && ((opcode >> 9) & 0x7) != 0b111) {
     uint64_t imm8 = (opcode & 0xff) << 1;
     const uint64_t cond = (opcode >> 8) & 0xf;
     if (imm8 & (1 << 8)) {
@@ -368,7 +385,7 @@ void RP2040::executeInstruction() {
   // BKPT
   else if (opcode >> 8 == 0b10111110) {
     const uint64_t imm8 = opcode & 0xff;
-    cout << "Breakpoint! 0x" << hex << imm8 << endl;
+    this->onBreak(imm8);
   }
   // BL
   else if (opcode >> 11 == 0b11110 && opcode2 >> 14 == 0b11 &&
@@ -821,6 +838,11 @@ void RP2040::executeInstruction() {
     this->N = !!(result & 0x80000000);
     this->Z = result == 0;
   }
+  // UDF
+  else if (opcode >> 8 == 0b11011110) {
+    const uint64_t imm8 = opcode & 0xff;
+    this->onBreak(imm8);
+  }
   // UXTB
   else if (opcode >> 6 == 0b1011001011) {
     const uint64_t Rm = (opcode >> 3) & 0x7;
@@ -833,3 +855,12 @@ void RP2040::executeInstruction() {
          << endl;
   }
 }
+
+void RP2040::execute() {
+  this->stopped = false;
+  while (!this->stopped) {
+    this->executeInstruction();
+  }
+}
+
+void RP2040::stop() { this->stopped = true; }

@@ -353,6 +353,16 @@ TEST(execute_ldrsh_instruction, executeInstruction) {
   EXPECT_EQ(rp2040->registers[R5], 0xfffff055);
 }
 
+// should execute a `udf 1` instruction
+TEST(execute_udf_instruction, executeInstruction) {
+  RP2040 *rp2040 = new RP2040("");
+  rp2040->setPC(0x10000000);
+  rp2040->flash16[0] = 0xde01; // udf 1
+  rp2040->executeInstruction();
+  EXPECT_EQ(rp2040->getPC(), 0x10000002);
+  EXPECT_EQ(rp2040->getBreakCount(), 1);
+}
+
 // should execute a `lsls r5, r5, #18` instruction
 TEST(execute_lsls_instruction_1, executeInstruction) {
   RP2040 *rp2040 = new RP2040("");
