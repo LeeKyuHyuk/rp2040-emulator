@@ -1,5 +1,4 @@
 #include "rp2040.h"
-#include "uart.h"
 #include <cstring>
 #include <fstream>
 #include <iostream>
@@ -20,9 +19,7 @@ int main(void) {
   string hexFile = readHexFile(filename);
   RP2040 *mcu = new RP2040(hexFile);
 
-  RPUART *uart = new RPUART(mcu, UART0_BASE);
-
-  uart->onByte = [](uint32_t value) -> void {
+  mcu->uart[0]->onByte = [](uint32_t value) -> void {
     cout << "UART sent: " << (char)(value) << endl;
   };
 
@@ -34,8 +31,8 @@ int main(void) {
   // mcu->setPC(RAM_START_ADDRESS + SRAM_SIZE - BOOT2_SIZE);
 
   mcu->setPC(0x10000000);
-  for (uint32_t i = 0; i < 10000; i++) {
-    if (mcu->getPC() >= 0x10000100) {
+  for (uint32_t i = 0; i < 20000; i++) {
+    if (mcu->getPC() >= 0x10000100 || mcu->getPC() < 0x100000) {
       cout << "PC: 0x" << hex << mcu->getPC() << endl;
     }
     mcu->executeInstruction();

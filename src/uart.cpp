@@ -1,4 +1,5 @@
 #include "uart.h"
+#include "rp2040.h"
 #include <iostream>
 
 RPUART::RPUART(RP2040 *mcu, uint32_t baseAddress) {

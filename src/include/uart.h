@@ -1,7 +1,6 @@
 #ifndef __UART_H__
 #define __UART_H__
 
-#include "rp2040.h"
 #include <cstdint>
 #include <functional>
 
@@ -9,6 +8,8 @@ using namespace std;
 
 const uint32_t UART0_BASE = 0x40034000;
 const uint32_t UART1_BASE = 0x40038000;
+
+class RP2040;
 
 class RPUART {
 private:

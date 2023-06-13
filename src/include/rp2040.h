@@ -1,6 +1,7 @@
 #ifndef __RP2040_H__
 #define __RP2040_H__
 
+#include "uart.h"
 #include <cstdint>
 #include <functional>
 #include <map>
@@ -61,6 +62,9 @@ public:
 
   map<uint32_t, function<void(uint32_t, uint32_t)>> writeHooks;
   map<uint32_t, function<uint32_t(uint32_t)>> readHooks;
+
+  RPUART *uart[2] = {new RPUART(this, UART0_BASE),
+                     new RPUART(this, UART1_BASE)};
 
   // APSR fields
   bool N = false;
