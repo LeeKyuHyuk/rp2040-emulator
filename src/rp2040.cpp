@@ -55,14 +55,6 @@ RP2040::RP2040(string hex) {
       [&](uint32_t address, uint32_t newValue) -> void { VTOR = newValue; });
   this->readHooks.emplace(SYSTEM_CONTROL_BLOCK + OFFSET_VTOR,
                           [&](uint32_t address) -> uint32_t { return VTOR; });
-  for (uint64_t spinlockIndex = 0; spinlockIndex < SIO_SPINLOCK_COUNT;
-       spinlockIndex++) {
-    this->readHooks.emplace(SIO_START_ADDRESS + SIO_SPINLOCK0 +
-                                4 * spinlockIndex,
-                            [&](uint32_t address) -> uint32_t {
-                              return 0; // TODO implement spinlock mechanism
-                            });
-  }
 
   loadHex(hex, this->flash);
 }
@@ -685,7 +677,7 @@ void RP2040::executeInstruction() {
     }
     this->setSP(getSP() - 4 * bitCount);
   }
-  // NEGS
+  // NEGS / RSBS
   else if (opcode >> 6 == 0b0100001001) {
     uint64_t Rn = (opcode >> 3) & 0x7;
     uint64_t Rd = opcode & 0x7;
@@ -693,7 +685,7 @@ void RP2040::executeInstruction() {
     this->registers[Rd] = -value;
     this->N = value > 0;
     this->Z = value == 0;
-    this->C = value == 0xFFFFFFFF;
+    this->C = value == 0;
     this->V = value == 0x7fffffff;
   }
   // SBCS (Encoding T2)

@@ -400,7 +400,7 @@ TEST(execute_lsls_instruction_with_carry, executeInstruction) {
 }
 
 // should execute a `rsbs r0, r3` instruction
-TEST(execute_rsbs_instruction, executeInstruction) {
+TEST(execute_rsbs_instruction_1, executeInstruction) {
   RP2040 *rp2040 = new RP2040("");
   rp2040->setPC(0x10000000);
   rp2040->flash16[0] = opcodeRSBS(R0, R3);
@@ -410,6 +410,21 @@ TEST(execute_rsbs_instruction, executeInstruction) {
   EXPECT_EQ(rp2040->N, true);
   EXPECT_EQ(rp2040->Z, false);
   EXPECT_EQ(rp2040->C, false);
+  EXPECT_EQ(rp2040->V, false);
+}
+
+// should execute a `rsbs r0, r3` instruction
+TEST(execute_rsbs_instruction_2, executeInstruction) {
+  // This instruction is also called `negs`
+  RP2040 *rp2040 = new RP2040("");
+  rp2040->setPC(0x10000000);
+  rp2040->flash16[0] = opcodeRSBS(R0, R3);
+  rp2040->registers[R3] = 0;
+  rp2040->executeInstruction();
+  EXPECT_EQ(rp2040->registers[R0] | 0, 0);
+  EXPECT_EQ(rp2040->N, false);
+  EXPECT_EQ(rp2040->Z, true);
+  EXPECT_EQ(rp2040->C, true);
   EXPECT_EQ(rp2040->V, false);
 }
 

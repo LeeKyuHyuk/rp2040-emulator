@@ -25,8 +25,6 @@ const uint32_t SIO_START_ADDRESS = 0xD0000000;
 class RP2040 {
 private:
   const uint32_t SIO_CPUID_OFFSET = 0;
-  const uint32_t SIO_SPINLOCK0 = 0x100;
-  const uint32_t SIO_SPINLOCK_COUNT = 32;
 
   const uint32_t XIP_SSI_BASE = 0x18000000;
   const uint32_t SSI_SR_OFFSET = 0x00000028;
