@@ -386,7 +386,7 @@ void RP2040::exceptionEntry(number exceptionNumber) {
   this->writeUint32(framePtr + 0x10, this->registers[12]);
   this->writeUint32(framePtr + 0x14, this->getLR());
   this->writeUint32(framePtr + 0x18,
-                    this->getPC()); // ReturnAddress(ExceptionType);
+                    this->getPC() & ~1); // ReturnAddress(ExceptionType);
   this->writeUint32(framePtr + 0x1c,
                     (this->getxPSR() & ~(1 << 9)) | (framePtrAlign << 9));
   if (this->currentMode == MODE_HANDLER) {
