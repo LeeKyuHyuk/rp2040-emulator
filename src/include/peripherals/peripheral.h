@@ -18,11 +18,10 @@ public:
 };
 
 class LoggingPeripheral : public Peripheral {
-private:
+public:
   RP2040 *rp2040;
   string name;
 
-public:
   LoggingPeripheral(RP2040 *rp2040, string name);
 
   number readUint32(number offset);

@@ -3,6 +3,7 @@
 
 #include "bootrom.h"
 #include "peripherals/peripheral.h"
+#include "peripherals/syscfg.h"
 #include "peripherals/timer.h"
 #include "peripherals/uart.h"
 #include "utils/dataview.h"
@@ -13,6 +14,7 @@
 
 #define SRAM_SIZE 264 * 1024
 #define FLASH_SIZE 16 * 1024 * 1024
+#define INTERRUPT_PRIORITIES_SIZE 4
 
 typedef uint64_t number;
 
@@ -34,11 +36,20 @@ const number CLOCKS_BASE = 0x40008000;
 const number CLK_REF_SELECTED = 0x38;
 const number CLK_SYS_SELECTED = 0x44;
 
-const number SYSTEM_CONTROL_BLOCK = 0xe000ed00;
-const number OFFSET_VTOR = 0x8;
+const number PPB_BASE = 0xe0000000;
+const number OFFSET_NVIC_ISER = 0xe100; // Interrupt Set-Enable Register
+const number OFFSET_NVIC_ICER = 0xe180; // Interrupt Clear-Enable Register
+const number OFFSET_NVIC_ISPR = 0xe200; // Interrupt Set-Pending Register
+const number OFFSET_NVIC_ICPR = 0xe280; // Interrupt Clear-Pending Register
+// Interrupt priority registers
+const uint16_t OFFSET_NVIC_IPRn[8] = {0xe400, 0xe404, 0xe408, 0xe40c,
+                                      0xe410, 0xe414, 0xe418, 0xe41c};
+const number OFFSET_VTOR = 0xed08;
 
 const number SYSM_APSR = 0;
 const number SYSM_IPSR = 5;
+
+enum EXECUTION_MODE { MODE_THREAD, MODE_HANDLER };
 
 const number PC_REGISTER = 15;
 
@@ -52,6 +63,10 @@ private:
 
   bool stopped = false;
   number breakCount = 0;
+
+  EXECUTION_MODE currentMode = MODE_THREAD;
+  number enabledInterrupts = 0;
+  bool interruptsUpdated = false;
 
 public:
   uint32_t bootrom[BOOT_ROM_B1_SIZE] = {
@@ -82,10 +97,14 @@ public:
   bool V = false;
 
   number IPSR = 0;
+  number pendingInterrupts = 0;
+  number interruptPriorities[INTERRUPT_PRIORITIES_SIZE] = {0xffffffff, 0x0, 0x0,
+                                                           0x0};
+  number interruptNMIMask = 0;
 
   map<number, Peripheral *> peripherals = {
       {0x40000, new UnimplementedPeripheral(this, "SYSINFO_BASE")},
-      {0x40004, new UnimplementedPeripheral(this, "SYSCFG_BASE")},
+      {0x40004, new RP2040SysCfg(this, "SYSCFG")},
       {0x40008, new UnimplementedPeripheral(this, "CLOCKS_BASE")},
       {0x4000c, new UnimplementedPeripheral(this, "RESETS_BASE")},
       {0x40010, new UnimplementedPeripheral(this, "PSM_BASE")},
@@ -142,6 +161,9 @@ public:
   void writeUint32(number address, number value);
   void writeUint16(number address, number value);
   void writeUint8(number address, number value);
+
+  void raiseException(number exceptionNumber);
+  void checkForInterrupts();
 
   void executeInstruction();
   void execute();

@@ -1107,3 +1107,76 @@ TEST(execute_uxth_instruction, executeInstruction) {
   rp2040->executeInstruction();
   EXPECT_EQ(rp2040->registers[R3], 0x5678);
 }
+
+// writing to NVIC_ISPR should set the corresponding pending interrupt bits
+TEST(nvic_ispr, nvicRegisters) {
+  RP2040 *rp2040 = new RP2040();
+  rp2040->pendingInterrupts = 0x1;
+  rp2040->writeUint32(0xe000e200, 0x10);
+  EXPECT_EQ(rp2040->pendingInterrupts, 0x11);
+}
+
+// writing to NVIC_ICPR should clear corresponding pending interrupt bits
+TEST(nvic_icpr, nvicRegisters) {
+  RP2040 *rp2040 = new RP2040();
+  rp2040->pendingInterrupts = 0xff;
+  rp2040->writeUint32(0xe000e280, 0x10);
+  EXPECT_EQ(rp2040->pendingInterrupts, 0xef);
+}
+
+// writing to NVIC_ISER should set the corresponding enabled interrupt bits
+TEST(nvic_iser, nvicRegisters) {
+  RP2040 *rp2040 = new RP2040();
+  rp2040->pendingInterrupts = 0x1;
+  rp2040->writeUint32(0xe000e100, 0x10);
+  EXPECT_EQ(rp2040->pendingInterrupts, 0x11);
+}
+
+// writing to NVIC_ICER should clear corresponding enabled interrupt bits
+TEST(nvic_icer, nvicRegisters) {
+  RP2040 *rp2040 = new RP2040();
+  rp2040->pendingInterrupts = 0x1;
+  rp2040->writeUint32(0xe000e180, 0x10);
+  EXPECT_EQ(rp2040->pendingInterrupts, 0xef);
+}
+
+// reading from NVIC_ISER/NVIC_ICER should return
+// the current enabled interrupt bits
+TEST(nvic_iser_icer, nvicRegisters) {
+  RP2040 *rp2040 = new RP2040();
+  rp2040->pendingInterrupts = 0x1;
+  EXPECT_EQ(rp2040->readUint32(0xe000e100), 0x1);
+  EXPECT_EQ(rp2040->readUint32(0xe000e180), 0x1);
+}
+
+// reading from NVIC_ISPR/NVIC_ICPR should return
+// the current enabled interrupt bits
+TEST(nvic_iser_icpr, nvicRegisters) {
+  RP2040 *rp2040 = new RP2040();
+  rp2040->pendingInterrupts = 0x2;
+  EXPECT_EQ(rp2040->readUint32(0xe000e200), 0x2);
+  EXPECT_EQ(rp2040->readUint32(0xe000e280), 0x2);
+}
+
+// should update the interrupt levels correctly when writing to NVIC_IPR3
+TEST(nvic_ipr3, nvicRegisters) {
+  RP2040 *rp2040 = new RP2040();
+  // Set the priority of interrupt number 14 to 2
+  rp2040->writeUint32(0xe000e40c, 0x00800000);
+  EXPECT_EQ((int)rp2040->interruptPriorities[0], ~(1 << 14));
+  EXPECT_EQ(rp2040->interruptPriorities[1], 0);
+  EXPECT_EQ(rp2040->interruptPriorities[2], 1 << 14);
+  EXPECT_EQ(rp2040->interruptPriorities[3], 0);
+  EXPECT_EQ(rp2040->readUint32(0xe000e40c), 0x00800000);
+}
+
+// should return the correct interrupt priorities when reading from NVIC_IPR5
+TEST(nvic_ipr5, nvicRegisters) {
+  RP2040 *rp2040 = new RP2040();
+  rp2040->interruptPriorities[0] = 0;
+  rp2040->interruptPriorities[1] = 0x001fffff; // interrupts 0 ... 20
+  rp2040->interruptPriorities[2] = 0x00200000; // interrupt 21
+  rp2040->interruptPriorities[3] = 0xffc00000; // interrupt 22 ... 31
+  // Set the priority of interrupt number 14 to 2
+  EXPECT_EQ(rp2040->readUint32(0xe000e414), (int)0xc0c08040);
+}

@@ -28,17 +28,14 @@ RP2040::RP2040() {
       [&](number address) -> number { return SSI_SR_TFE_BITS; });
 
   dr0 = 0;
-#if 0
-  // TODO: there is probably a nasty bug hiding below!
   this->writeHooks.emplace(XIP_SSI_BASE + SSI_DR0_OFFSET,
                            [&](number address, number value) -> void {
                              const number CMD_READ_STATUS = 0x05;
                              if (value == CMD_READ_STATUS) {
                                // tell stage2 that we completed a write
-                               dr0 = 1;
+                               dr0 = 0;
                              }
                            });
-#endif
   this->readHooks.emplace(XIP_SSI_BASE + SSI_DR0_OFFSET,
                           [&](number address) -> number { return dr0; });
 
@@ -49,10 +46,74 @@ RP2040::RP2040() {
 
   VTOR = 0;
   this->writeHooks.emplace(
-      SYSTEM_CONTROL_BLOCK + OFFSET_VTOR,
+      PPB_BASE + OFFSET_VTOR,
       [&](number address, number newValue) -> void { VTOR = newValue; });
-  this->readHooks.emplace(SYSTEM_CONTROL_BLOCK + OFFSET_VTOR,
+  this->readHooks.emplace(PPB_BASE + OFFSET_VTOR,
                           [&](number address) -> number { return VTOR; });
+  this->writeHooks.emplace(PPB_BASE + OFFSET_NVIC_ISPR,
+                           [&](number address, number newValue) -> void {
+                             this->pendingInterrupts |= newValue;
+                             this->interruptsUpdated = true;
+                           });
+  this->writeHooks.emplace(PPB_BASE + OFFSET_NVIC_ICPR,
+                           [&](number address, number newValue) -> void {
+                             this->pendingInterrupts &= ~newValue;
+                           });
+  this->writeHooks.emplace(PPB_BASE + OFFSET_NVIC_ISER,
+                           [&](number address, number newValue) -> void {
+                             this->enabledInterrupts |= newValue;
+                             this->interruptsUpdated = true;
+                           });
+  this->writeHooks.emplace(PPB_BASE + OFFSET_NVIC_ICER,
+                           [&](number address, number newValue) -> void {
+                             this->enabledInterrupts &= ~newValue;
+                           });
+
+  /* NVIC */
+  this->readHooks.emplace(
+      PPB_BASE + OFFSET_NVIC_ISPR,
+      [&](number address) -> number { return this->pendingInterrupts; });
+  this->readHooks.emplace(
+      PPB_BASE + OFFSET_NVIC_ICPR,
+      [&](number address) -> number { return this->pendingInterrupts; });
+  this->readHooks.emplace(
+      PPB_BASE + OFFSET_NVIC_ISER,
+      [&](number address) -> number { return this->pendingInterrupts; });
+  this->readHooks.emplace(
+      PPB_BASE + OFFSET_NVIC_ICER,
+      [&](number address) -> number { return this->pendingInterrupts; });
+  for (number regIndex = 0; regIndex < 8; regIndex++) {
+    this->writeHooks.emplace(
+        PPB_BASE + OFFSET_NVIC_IPRn[regIndex],
+        [&](number address, number newValue) -> void {
+          for (number byteIndex = 0; byteIndex < 4; byteIndex++) {
+            const number interruptNumber = regIndex * 4 + byteIndex;
+            const number newPriority = (newValue >> (8 * byteIndex + 6)) & 0x3;
+            cout << interruptNumber << "=" << newPriority << endl;
+            for (number priority = 0; priority < INTERRUPT_PRIORITIES_SIZE;
+                 priority++) {
+              this->interruptPriorities[priority] &= ~(1 << interruptNumber);
+            }
+            this->interruptPriorities[newPriority] |= 1 << interruptNumber;
+          }
+          this->interruptsUpdated = true;
+        });
+    this->readHooks.emplace(
+        PPB_BASE + OFFSET_NVIC_IPRn[regIndex], [&](number address) -> number {
+          number result = 0;
+          for (number byteIndex = 0; byteIndex < 4; byteIndex++) {
+            const number interruptNumber = regIndex * 4 + byteIndex;
+            for (number priority = 0; priority < INTERRUPT_PRIORITIES_SIZE;
+                 priority++) {
+              if (this->interruptPriorities[priority] &
+                  (1 << interruptNumber)) {
+                result |= priority << (8 * byteIndex + 6);
+              }
+            }
+          }
+          return result;
+        });
+  }
 }
 
 void RP2040::loadBootrom(const uint32_t *bootromData, number bootromSize) {
@@ -271,7 +332,77 @@ void RP2040::writeUint8(number address, number value) {
   this->writeUint32(alignedAddress, newValue[0]);
 }
 
+void RP2040::raiseException(number exceptionNumber) {
+  // PushStack()
+  number frameptr = 0;
+  number frameptralign = 0;
+  if (CONTROL.SPSEL == '1' && this->currentMode == MODE_THREAD) {
+    frameptralign = SP_process & 0b100 ? 1 : 0;
+    SP_process = (SP_process - 0x20) & ~0b100;
+    frameptr = SP_process;
+  } else {
+    frameptralign = SP_main & 0b100 ? 1 : 0;
+    SP_main = (SP_main - 0x20) & ~0b100;
+    frameptr = SP_main;
+  }
+  /* only the stack locations, not the store order, are architected */
+  this->writeUint32(frameptr, this->registers[0]);
+  this->writeUint32(frameptr + 0x4, this->registers[1]);
+  this->writeUint32(frameptr + 0x8, this->registers[2]);
+  this->writeUint32(frameptr + 0xc, this->registers[3]);
+  this->writeUint32(frameptr + 0x10, this->registers[12]);
+  this->writeUint32(frameptr + 0x14, this->getLR());
+  this->writeUint32(frameptr + 0x18,
+                    this->getPC()); // ReturnAddress(ExceptionType);
+  this->writeUint32(frameptr + 0x1c,
+                    (this->getxPSR() & ~(1 << 9)) | (frameptralign << 9));
+  if (this->currentMode == MODE_HANDLER) {
+    this->setLR(0xfffffff1);
+  } else {
+    if (CONTROL.SPSEL == '0') {
+      this->setLR(0xfffffff9);
+    } else {
+      this->setLR(0xfffffffd);
+    }
+  }
+  // ExceptionTaken()
+  ///
+  this->currentMode = MODE_HANDLER; // Enter Handler Mode, now Privileged
+  this->IPSR = exceptionNumber;
+  // CONTROL.SPSEL = '0'; // Current stack is now SP main
+  // SetEventRegister(); // See WFE instruction for details
+  const number vectorTable = this->readUint32(PPB_BASE + OFFSET_VTOR);
+  this->setPC(this->readUint32(vectorTable + 4 * exceptionNumber));
+}
+
+void RP2040::checkForInterrupts() {
+  // TODO: when we implement the rest of the exceptions:
+  //  if n == Reset then result = -3;
+  //  elsif n == NMI then result = -2;
+  //  elsif n == HardFault then result = -1;
+  //  elsif n == SVCall then result = UInt(SHPR2.PRI_11);
+  //  elsif n == PendSV then result = UInt(SHPR3.PRI_14);
+  //  elsif n == SysTick then result = UInt(SHPR3.PRI_15);
+  const number interruptSet = this->pendingInterrupts & this->enabledInterrupts;
+  for (number priority = 0; priority < INTERRUPT_PRIORITIES_SIZE; priority++) {
+    const number levelInterrupts =
+        interruptSet & this->interruptPriorities[priority];
+    if (levelInterrupts) {
+      for (number interruptNumber = 0; interruptNumber < 32;
+           interruptNumber++) {
+        if (levelInterrupts & (1 << interruptNumber)) {
+          this->raiseException(16 + interruptNumber);
+          return;
+        }
+      }
+    }
+  }
+}
+
 void RP2040::executeInstruction() {
+  if (this->interruptsUpdated) {
+    this->checkForInterrupts();
+  }
   // ARM Thumb instruction encoding - 16 bits / 2 bytes
   const number opcode = this->readUint16(this->getPC());
   const number opcode2 = this->readUint16(this->getPC() + 2);
