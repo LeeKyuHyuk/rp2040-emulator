@@ -807,7 +807,7 @@ void RP2040::executeInstruction() {
     this->PM = false;
   }
   // DMB SY
-  else if (opcode == 0xf3bf && opcode2 == 0x8f5f) {
+  else if (opcode == 0xf3bf && (opcode2 & 0xfff0) == 0x8f50) {
     this->setPC(this->getPC() + 2);
   }
   // EORS
