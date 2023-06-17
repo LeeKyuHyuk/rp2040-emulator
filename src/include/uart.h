@@ -4,25 +4,27 @@
 #include <cstdint>
 #include <functional>
 
+typedef uint64_t number;
+
 using namespace std;
 
-const uint32_t UART0_BASE = 0x40034000;
-const uint32_t UART1_BASE = 0x40038000;
+const number UART0_BASE = 0x40034000;
+const number UART1_BASE = 0x40038000;
 
 class RP2040;
 
 class RPUART {
 private:
-  const uint32_t UARTDR = 0x0;
-  const uint32_t UARTFR = 0x18;
+  const number UARTDR = 0x0;
+  const number UARTFR = 0x18;
 
   RP2040 *mcu;
-  uint32_t baseAddress = UART0_BASE;
+  number baseAddress = UART0_BASE;
 
 public:
-  function<void(uint32_t)> onByte;
+  function<void(number)> onByte;
 
-  RPUART(RP2040 *mcu, uint32_t baseAddress);
+  RPUART(RP2040 *mcu, number baseAddress);
 };
 
 #endif

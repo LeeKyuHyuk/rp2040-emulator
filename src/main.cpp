@@ -1,3 +1,5 @@
+#include "bootrom.h"
+#include "intelhex.h"
 #include "rp2040.h"
 #include <cstring>
 #include <fstream>
@@ -14,28 +16,24 @@ string readHexFile(const string &path) {
                 std::istreambuf_iterator<char>());
 }
 
-int main(void) {
-  string filename("../hello_uart.hex");
+int main(int argc, char *argv[]) {
+  if (argc != 2) {
+    cerr << "Please input HexFile!" << endl;
+    cerr << "[Usage] $ ./rp2040-emulator ./examples/hello_uart.hex" << endl;
+    return EXIT_FAILURE;
+  }
+  string filename(argv[1]);
   string hexFile = readHexFile(filename);
-  RP2040 *mcu = new RP2040(hexFile);
+  RP2040 *mcu = new RP2040();
+  mcu->loadBootrom(bootromB1, BOOT_ROM_B1_SIZE);
+  loadHex(hexFile, mcu->flash);
 
-  mcu->uart[0]->onByte = [](uint32_t value) -> void {
+  mcu->uart[0]->onByte = [](number value) -> void {
     cout << "UART sent: " << (char)(value) << endl;
   };
 
-  // To start from boot_stage2:
-  // load 256 bytes from flash to the end of SRAM
-  // mcu->setLR(0x0);
-  // const uint16_t BOOT2_SIZE = 256;
-  // memcpy(&mcu->sram, &mcu->flash, BOOT2_SIZE);
-  // mcu->setPC(RAM_START_ADDRESS + SRAM_SIZE - BOOT2_SIZE);
-
   mcu->setPC(0x10000000);
-  for (uint32_t i = 0; i < 20000; i++) {
-    if (mcu->getPC() >= 0x10000100 || mcu->getPC() < 0x100000) {
-      cout << "PC: 0x" << hex << mcu->getPC() << endl;
-    }
-    mcu->executeInstruction();
-  }
+  mcu->execute();
+
   return EXIT_SUCCESS;
 }

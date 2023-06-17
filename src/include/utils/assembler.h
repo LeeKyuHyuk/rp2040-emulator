@@ -3,102 +3,104 @@
 
 #include <cstdint>
 
-uint32_t opcodeADCS(uint32_t Rdn, uint32_t Rm);
+typedef uint64_t number;
 
-uint32_t opcodeADDS1(uint32_t Rd, uint32_t Rn, uint32_t imm3);
+number opcodeADCS(number Rdn, number Rm);
 
-uint32_t opcodeADDS2(uint32_t Rdn, uint32_t imm8);
+number opcodeADDS1(number Rd, number Rn, number imm3);
 
-uint32_t opcodeADDspPlusImm(uint32_t Rd, uint32_t imm8);
+number opcodeADDS2(number Rdn, number imm8);
 
-uint32_t opcodeADDsp2(uint32_t imm);
+number opcodeADDspPlusImm(number Rd, number imm8);
 
-uint32_t opcodeADDSreg(uint32_t Rd, uint32_t Rn, uint32_t Rm);
+number opcodeADDsp2(number imm);
 
-uint32_t opcodeADDreg(uint32_t Rdn, uint32_t Rm);
+number opcodeADDSreg(number Rd, number Rn, number Rm);
 
-uint32_t opcodeADR(uint32_t Rd, uint32_t imm8);
+number opcodeADDreg(number Rdn, number Rm);
 
-uint32_t opcodeANDS(uint32_t Rn, uint32_t Rm);
+number opcodeADR(number Rd, number imm8);
 
-uint32_t opcodeASRS(uint32_t Rd, uint32_t Rm, uint32_t imm5);
+number opcodeANDS(number Rn, number Rm);
 
-uint32_t opcodeBICS(uint32_t Rdn, uint32_t Rm);
+number opcodeASRS(number Rd, number Rm, number imm5);
 
-uint32_t opcodeBL(uint32_t imm);
+number opcodeBICS(number Rdn, number Rm);
 
-uint32_t opcodeBLX(uint32_t Rm);
+number opcodeBL(number imm);
 
-uint32_t opcodeBX(uint32_t Rm);
+number opcodeBLX(number Rm);
 
-uint32_t opcodeEORS(uint32_t Rdn, uint32_t Rm);
+number opcodeBX(number Rm);
 
-uint32_t opcodeLDMIA(uint32_t Rn, uint32_t registers);
+number opcodeEORS(number Rdn, number Rm);
 
-uint32_t opcodeLDRreg(uint32_t Rt, uint32_t Rn, uint32_t Rm);
+number opcodeLDMIA(number Rn, number registers);
 
-uint32_t opcodeLDRB(uint32_t Rt, uint32_t Rn, uint32_t imm5);
+number opcodeLDRreg(number Rt, number Rn, number Rm);
 
-uint32_t opcodeLDRsp(uint32_t Rt, uint32_t imm8);
+number opcodeLDRB(number Rt, number Rn, number imm5);
 
-uint32_t opcodeLDRBreg(uint32_t Rt, uint32_t Rn, uint32_t Rm);
+number opcodeLDRsp(number Rt, number imm8);
 
-uint32_t opcodeLDRH(uint32_t Rt, uint32_t Rn, uint32_t imm5);
+number opcodeLDRBreg(number Rt, number Rn, number Rm);
 
-uint32_t opcodeLDRHreg(uint32_t Rt, uint32_t Rn, uint32_t Rm);
+number opcodeLDRH(number Rt, number Rn, number imm5);
 
-uint32_t opcodeLDRSB(uint32_t Rt, uint32_t Rn, uint32_t Rm);
+number opcodeLDRHreg(number Rt, number Rn, number Rm);
 
-uint32_t opcodeLDRSH(uint32_t Rt, uint32_t Rn, uint32_t Rm);
+number opcodeLDRSB(number Rt, number Rn, number Rm);
 
-uint32_t opcodeLSLSreg(uint32_t Rdn, uint32_t Rm);
+number opcodeLDRSH(number Rt, number Rn, number Rm);
 
-uint32_t opcodeLSRS(uint32_t Rd, uint32_t Rm, uint32_t imm5);
+number opcodeLSLSreg(number Rdn, number Rm);
 
-uint32_t opcodeLSRSreg(uint32_t Rdn, uint32_t Rm);
+number opcodeLSRS(number Rd, number Rm, number imm5);
 
-uint32_t opcodeMOV(uint32_t Rd, uint32_t Rm);
+number opcodeLSRSreg(number Rdn, number Rm);
 
-uint32_t opcodeMRS(uint32_t Rd, uint32_t specReg);
+number opcodeMOV(number Rd, number Rm);
 
-uint32_t opcodeMSR(uint32_t specReg, uint32_t Rn);
+number opcodeMRS(number Rd, number specReg);
 
-uint32_t opcodeMVNS(uint32_t Rd, uint32_t Rm);
+number opcodeMSR(number specReg, number Rn);
 
-uint32_t opcodeORRS(uint32_t Rn, uint32_t Rm);
+number opcodeMVNS(number Rd, number Rm);
 
-uint32_t opcodePOP(bool P, uint32_t registerList);
+number opcodeORRS(number Rn, number Rm);
 
-uint32_t opcodeRSBS(uint32_t Rd, uint32_t Rn);
+number opcodePOP(bool P, number registerList);
 
-uint32_t opcodeSTMIA(uint32_t Rn, uint32_t registers);
+number opcodeRSBS(number Rd, number Rn);
 
-uint32_t opcodeSBCS(uint32_t Rn, uint32_t Rm);
+number opcodeSTMIA(number Rn, number registers);
 
-uint32_t opcodeSTR(uint32_t Rt, uint32_t Rm, uint32_t imm5);
+number opcodeSBCS(number Rn, number Rm);
 
-uint32_t opcodeSTRsp(uint32_t Rt, uint32_t imm8);
+number opcodeSTR(number Rt, number Rm, number imm5);
 
-uint32_t opcodeSTRreg(uint32_t Rt, uint32_t Rn, uint32_t Rm);
+number opcodeSTRsp(number Rt, number imm8);
 
-uint32_t opcodeSTRB(uint32_t Rt, uint32_t Rm, uint32_t imm5);
+number opcodeSTRreg(number Rt, number Rn, number Rm);
 
-uint32_t opcodeSTRBreg(uint32_t Rt, uint32_t Rn, uint32_t Rm);
+number opcodeSTRB(number Rt, number Rm, number imm5);
 
-uint32_t opcodeSTRH(uint32_t Rt, uint32_t Rm, uint32_t imm5);
+number opcodeSTRBreg(number Rt, number Rn, number Rm);
 
-uint32_t opcodeSTRHreg(uint32_t Rt, uint32_t Rn, uint32_t Rm);
+number opcodeSTRH(number Rt, number Rm, number imm5);
 
-uint32_t opcodeSUBS1(uint32_t Rd, uint32_t Rn, uint32_t imm3);
+number opcodeSTRHreg(number Rt, number Rn, number Rm);
 
-uint32_t opcodeSUBS2(uint32_t Rdn, uint32_t imm8);
+number opcodeSUBS1(number Rd, number Rn, number imm3);
 
-uint32_t opcodeSUBSreg(uint32_t Rd, uint32_t Rn, uint32_t Rm);
+number opcodeSUBS2(number Rdn, number imm8);
 
-uint32_t opcodeSUBsp(uint32_t imm);
+number opcodeSUBSreg(number Rd, number Rn, number Rm);
 
-uint32_t opcodeSXTB(uint32_t Rd, uint32_t Rm);
+number opcodeSUBsp(number imm);
 
-uint32_t opcodeUXTB(uint32_t Rd, uint32_t Rm);
+number opcodeSXTB(number Rd, number Rm);
+
+number opcodeUXTB(number Rd, number Rm);
 
 #endif
