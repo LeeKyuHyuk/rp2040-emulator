@@ -749,13 +749,13 @@ void RP2040::executeInstruction() {
     const number imm32 =
         ((S ? 0b11111111 : 0) << 24) |
         ((I1 << 23) | (I2 << 22) | (imm10 << 12) | (imm11 << 1));
-    this->setLR(this->getPC() + 2);
+    this->setLR((this->getPC() + 2) | 0x1);
     this->setPC(this->getPC() + 2 + imm32);
   }
   // BLX
   else if (opcode >> 7 == 0b010001111 && (opcode & 0x7) == 0) {
     const number Rm = (opcode >> 3) & 0xf;
-    this->setLR(this->getPC());
+    this->setLR(this->getPC() | 0x1);
     this->setPC(this->registers[Rm] & ~1);
   }
   // BX
