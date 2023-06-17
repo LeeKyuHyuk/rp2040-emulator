@@ -555,6 +555,7 @@ void RP2040::writeSpecialRegister(number sysm, number value) {
 
   case SYSM_PRIMASK:
     this->PM = !!(value & 1);
+    break;
 
   case SYSM_MSP:
     this->setSPmain(value);
