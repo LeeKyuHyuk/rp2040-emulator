@@ -598,7 +598,7 @@ TEST(execute_bl_instruction_1, executeInstruction) {
   flash32[0] = opcodeBL(0x34);
   rp2040->executeInstruction();
   EXPECT_EQ(rp2040->getPC(), 0x10000038);
-  EXPECT_EQ(rp2040->getLR(), 0x10000004);
+  EXPECT_EQ(rp2040->getLR(), 0x10000005);
 }
 
 // should execute `bl -0x10` instruction
@@ -609,7 +609,7 @@ TEST(execute_bl_instruction_2, executeInstruction) {
   flash32[0] = opcodeBL(-0x10);
   rp2040->executeInstruction();
   EXPECT_EQ(rp2040->getPC(), 0x10000004 - 0x10);
-  EXPECT_EQ(rp2040->getLR(), 0x10000004);
+  EXPECT_EQ(rp2040->getLR(), 0x10000005);
 }
 
 // should execute `bl -3242` instruction
@@ -620,7 +620,7 @@ TEST(execute_bl_instruction_3, executeInstruction) {
   flash32[0] = opcodeBL(-3242);
   rp2040->executeInstruction();
   EXPECT_EQ(rp2040->getPC(), 0x10000004 - 3242);
-  EXPECT_EQ(rp2040->getLR(), 0x10000004);
+  EXPECT_EQ(rp2040->getLR(), 0x10000005);
 }
 
 // should execute `blx r3` instruction
@@ -632,7 +632,7 @@ TEST(execute_blx_instruction, executeInstruction) {
   flash32[0] = opcodeBLX(R3);
   rp2040->executeInstruction();
   EXPECT_EQ(rp2040->getPC(), 0x10000200);
-  EXPECT_EQ(rp2040->getLR(), 0x10000002);
+  EXPECT_EQ(rp2040->getLR(), 0x10000003);
 }
 
 // should execute a `b.n .-20` instruction
