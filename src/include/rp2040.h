@@ -2,7 +2,8 @@
 #define __RP2040_H__
 
 #include "bootrom.h"
-#include "uart.h"
+#include "peripherals/peripheral.h"
+#include "peripherals/uart.h"
 #include "utils/dataview.h"
 #include <cstdint>
 #include <functional>
@@ -68,14 +69,43 @@ public:
   map<number, function<void(number, number)>> writeHooks;
   map<number, function<number(number)>> readHooks;
 
-  RPUART *uart[2] = {new RPUART(this, UART0_BASE),
-                     new RPUART(this, UART1_BASE)};
+  RPUART *uart[2] = {new RPUART(this, "UART0"), new RPUART(this, "UART1")};
 
   // APSR fields
   bool N = false;
   bool C = false;
   bool Z = false;
   bool V = false;
+
+  map<number, Peripheral *> peripherals = {
+      {0x40000, new UnimplementedPeripheral(this, "SYSINFO_BASE")},
+      {0x40004, new UnimplementedPeripheral(this, "SYSCFG_BASE")},
+      {0x40008, new UnimplementedPeripheral(this, "CLOCKS_BASE")},
+      {0x4000c, new UnimplementedPeripheral(this, "RESETS_BASE")},
+      {0x40010, new UnimplementedPeripheral(this, "PSM_BASE")},
+      {0x40014, new UnimplementedPeripheral(this, "IO_BANK0_BASE")},
+      {0x40018, new UnimplementedPeripheral(this, "IO_QSPI_BASE")},
+      {0x4001c, new UnimplementedPeripheral(this, "PADS_BANK0_BASE")},
+      {0x40020, new UnimplementedPeripheral(this, "PADS_QSPI_BASE")},
+      {0x40024, new UnimplementedPeripheral(this, "XOSC_BASE")},
+      {0x40028, new UnimplementedPeripheral(this, "PLL_SYS_BASE")},
+      {0x4002c, new UnimplementedPeripheral(this, "PLL_USB_BASE")},
+      {0x40030, new UnimplementedPeripheral(this, "BUSCTRL_BASE")},
+      {0x40034, this->uart[0]},
+      {0x40038, this->uart[1]},
+      {0x4003c, new UnimplementedPeripheral(this, "SPI0_BASE")},
+      {0x40040, new UnimplementedPeripheral(this, "SPI1_BASE")},
+      {0x40044, new UnimplementedPeripheral(this, "I2C0_BASE")},
+      {0x40048, new UnimplementedPeripheral(this, "I2C1_BASE")},
+      {0x4004c, new UnimplementedPeripheral(this, "ADC_BASE")},
+      {0x40050, new UnimplementedPeripheral(this, "PWM_BASE")},
+      {0x40054, new UnimplementedPeripheral(this, "TIMER_BASE")},
+      {0x40058, new UnimplementedPeripheral(this, "WATCHDOG_BASE")},
+      {0x4005c, new UnimplementedPeripheral(this, "RTC_BASE")},
+      {0x40060, new UnimplementedPeripheral(this, "ROSC_BASE")},
+      {0x40064, new UnimplementedPeripheral(this, "VREG_AND_CHIP_RESET_BASE")},
+      {0x4006c, new UnimplementedPeripheral(this, "TBMAN_BASE")},
+  };
 
   // Debugging
   void onBreak(number code);
@@ -91,6 +121,8 @@ public:
   void setLR(number value);
   number getPC();
   void setPC(number value);
+
+  Peripheral *findPeripheral(number address);
 
   bool checkCondition(number cond);
   number readUint32(number address);

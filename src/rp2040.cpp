@@ -79,6 +79,17 @@ number RP2040::getPC() { return this->registers[15]; }
 
 void RP2040::setPC(number value) { this->registers[15] = value; }
 
+Peripheral *RP2040::findPeripheral(number address) {
+  map<number, Peripheral *>::iterator iter =
+      (this->peripherals).find((uint32_t)address >> 14 << 2);
+  // Operates when there is a value for the
+  // corresponding key in the peripherals map
+  if (iter != this->peripherals.end()) {
+    return iter->second;
+  }
+  return NULL;
+}
+
 bool RP2040::checkCondition(number cond) { // Evaluate base condition.
   bool result = false;
   switch (cond >> 1) {
@@ -119,6 +130,10 @@ number RP2040::readUint32(number address) {
     throw new runtime_error(errorMsg);
   }
   address = (uint32_t)address; // round to 32-bits, unsigned
+  Peripheral *peripheral = this->findPeripheral(address);
+  if (peripheral != NULL) {
+    return peripheral->readUint32(address & 0x3fff);
+  }
   if (address < BOOT_ROM_B1_SIZE * 4) {
     return this->bootrom[address / 4];
   } else if (address >= FLASH_START_ADDRESS && address < FLASH_END_ADDRESS) {
@@ -153,7 +168,10 @@ number RP2040::readUint8(number address) {
 }
 
 void RP2040::writeUint32(number address, number value) {
-  if (address < BOOT_ROM_B1_SIZE * 4) {
+  Peripheral *peripheral = this->findPeripheral(address);
+  if (peripheral != NULL) {
+    peripheral->writeUint32(address & 0x3fff, value);
+  } else if (address < BOOT_ROM_B1_SIZE * 4) {
     this->bootrom[address / 4] = value;
   } else if (address >= FLASH_START_ADDRESS && address < FLASH_END_ADDRESS) {
     this->flashView->setUint32(address - FLASH_START_ADDRESS, value);
@@ -207,6 +225,12 @@ void RP2040::writeUint16(number address, number value) {
   // Ideally we should generate a fault if not!
   const number alignedAddress = address & 0xfffffffc;
   const number offset = address & 0x3;
+  Peripheral *peripheral = this->findPeripheral(address);
+  if (peripheral) {
+    peripheral->writeUint32(alignedAddress & 0x3fff,
+                            (value & 0xffff) | ((value & 0xffff) << 16));
+    return;
+  }
   const number originalValue = this->readUint32(alignedAddress);
   uint32_t newValue[] = {(uint32_t)originalValue};
   DataView(&newValue[0], 1).setUint16(offset, (uint16_t)value);
@@ -216,6 +240,14 @@ void RP2040::writeUint16(number address, number value) {
 void RP2040::writeUint8(number address, number value) {
   const number alignedAddress = address & 0xfffffffc;
   const number offset = address & 0x3;
+  Peripheral *peripheral = this->findPeripheral(address);
+  if (peripheral != NULL) {
+    peripheral->writeUint32(alignedAddress & 0x3fff,
+                            (value & 0xff) | ((value & 0xff) << 8) |
+                                ((value & 0xff) << 16) |
+                                ((value & 0xff) << 24));
+    return;
+  }
   const number originalValue = this->readUint32(alignedAddress);
   uint32_t newValue[] = {(uint32_t)originalValue};
   DataView(&newValue[0], 1).setUint8(offset, (uint8_t)value);
