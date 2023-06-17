@@ -21,6 +21,6 @@ void LoggingPeripheral::writeUint32(number offset, number value) {
   cout << "Unimplemented peripheral " << this->name << " write to 0x" << hex
        << offset << ": 0x" << hex << value << endl;
   if (offset > 0x1000) {
-    cout << "Unimplemented atomic-write to peripheral" << endl;
+    cout << "Unimplemented atomic-write to peripheral " << this->name << endl;
   }
 }

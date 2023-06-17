@@ -3,6 +3,7 @@
 
 #include "bootrom.h"
 #include "peripherals/peripheral.h"
+#include "peripherals/timer.h"
 #include "peripherals/uart.h"
 #include "utils/dataview.h"
 #include <cstdint>
@@ -99,7 +100,7 @@ public:
       {0x40048, new UnimplementedPeripheral(this, "I2C1_BASE")},
       {0x4004c, new UnimplementedPeripheral(this, "ADC_BASE")},
       {0x40050, new UnimplementedPeripheral(this, "PWM_BASE")},
-      {0x40054, new UnimplementedPeripheral(this, "TIMER_BASE")},
+      {0x40054, new RPTimer(this, "TIMER_BASE")},
       {0x40058, new UnimplementedPeripheral(this, "WATCHDOG_BASE")},
       {0x4005c, new UnimplementedPeripheral(this, "RTC_BASE")},
       {0x40060, new UnimplementedPeripheral(this, "ROSC_BASE")},

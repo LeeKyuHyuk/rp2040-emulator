@@ -81,7 +81,7 @@ void RP2040::setPC(number value) { this->registers[15] = value; }
 
 Peripheral *RP2040::findPeripheral(number address) {
   map<number, Peripheral *>::iterator iter =
-      (this->peripherals).find((uint32_t)address >> 14 << 2);
+      (this->peripherals).find(((uint32_t)address >> 14) << 2);
   // Operates when there is a value for the
   // corresponding key in the peripherals map
   if (iter != this->peripherals.end()) {
