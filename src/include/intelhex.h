@@ -7,7 +7,7 @@
 
 using namespace std;
 
-void loadHex(string source, uint8_t target[]);
+void loadHex(string source, uint8_t target[], uint64_t baseAddress);
 vector<string> split(string str, char delimiter);
 
 #endif

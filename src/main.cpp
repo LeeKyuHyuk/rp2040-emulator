@@ -31,7 +31,7 @@ int main(int argc, char *argv[]) {
   string hexFile = readHexFile(filename);
   RP2040 *mcu = new RP2040();
   mcu->loadBootrom(bootromB1, BOOT_ROM_B1_SIZE);
-  loadHex(hexFile, mcu->flash);
+  loadHex(hexFile, mcu->flash, 0x10000000);
 
   mcu->uart[0]->onByte = [](number value) -> void {
     cout << "UART sent: " << (char)(value) << endl;

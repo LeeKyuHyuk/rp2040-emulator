@@ -13,13 +13,19 @@ vector<string> split(string str, char delimiter) {
   return result;
 }
 
-void loadHex(string source, uint8_t target[]) {
+void loadHex(string source, uint8_t target[], uint64_t baseAddress) {
+  uint64_t highAddressBytes = 0;
   vector<string> line = split(source, '\n');
   for (string item : line) {
+    if (item.at(0) == ':' && item.substr(7, 2).compare("04") == 0) {
+      highAddressBytes = stoul(item.substr(9, 4), nullptr, 16);
+    }
     if (item.at(0) == ':' && item.substr(7, 2).compare("00") == 0) {
-      const uint32_t bytes = stoul(item.substr(1, 2), nullptr, 16);
-      const uint32_t addr = stoul(item.substr(3, 4), nullptr, 16);
-      for (uint32_t index = 0; index < bytes; index++) {
+      const uint64_t bytes = stoul(item.substr(1, 2), nullptr, 16);
+      const uint64_t addr =
+          ((highAddressBytes << 16) | stoul(item.substr(3, 4), nullptr, 16)) -
+          baseAddress;
+      for (uint64_t index = 0; index < bytes; index++) {
         target[addr + index] =
             stoul(item.substr(9 + index * 2, 2), nullptr, 16);
       }
