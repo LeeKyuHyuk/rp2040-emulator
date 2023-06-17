@@ -507,7 +507,6 @@ TEST(execute_str_instruction_3, executeInstruction) {
 TEST(execute_bl_instruction_1, executeInstruction) {
   RP2040 *rp2040 = new RP2040();
   rp2040->setPC(0x10000000);
-  cout << "0x" << hex << opcodeBL(0x34) << endl;
   uint32_t *flash32 = (uint32_t *)rp2040->flash;
   flash32[0] = opcodeBL(0x34);
   rp2040->executeInstruction();

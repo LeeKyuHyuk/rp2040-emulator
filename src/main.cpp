@@ -6,6 +6,8 @@
 #include <iostream>
 #include <sstream>
 
+#define VERSION "0.1.1"
+
 string readHexFile(const string &path) {
   ifstream input_file(path);
   if (!input_file.is_open()) {
@@ -17,6 +19,9 @@ string readHexFile(const string &path) {
 }
 
 int main(int argc, char *argv[]) {
+  cout << "=-=-=-=-=-=-=-=-=-=-=-=" << endl;
+  cout << "RP2040 Emulator v" << VERSION << endl;
+  cout << "=-=-=-=-=-=-=-=-=-=-=-=" << endl;
   if (argc != 2) {
     cerr << "Please input HexFile!" << endl;
     cerr << "[Usage] $ ./rp2040-emulator ./examples/hello_uart.hex" << endl;
