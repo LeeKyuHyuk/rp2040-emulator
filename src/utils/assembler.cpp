@@ -114,6 +114,10 @@ number opcodeMOV(number Rd, number Rm) {
   return (0b01000110 << 8) | ((Rd & 0x8 ? 1 : 0) << 7) | (Rm << 3) | (Rd & 0x7);
 }
 
+number opcodeMOVS(number Rd, number imm8) {
+  return (0b00100 << 11) | ((Rd & 0x7) << 8) | (imm8 & 0xff);
+}
+
 number opcodeMRS(number Rd, number specReg) {
   return (uint32_t)((0b1000 << 28) | ((Rd & 0xf) << 24) |
                     ((specReg & 0xff) << 16) | 0b1111001111101111);

@@ -61,6 +61,8 @@ number opcodeLSRSreg(number Rdn, number Rm);
 
 number opcodeMOV(number Rd, number Rm);
 
+number opcodeMOVS(number Rd, number imm8);
+
 number opcodeMRS(number Rd, number specReg);
 
 number opcodeMSR(number specReg, number Rn);

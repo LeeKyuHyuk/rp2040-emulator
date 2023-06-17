@@ -16,6 +16,8 @@
 #define LR 14
 #define PC 15
 
+const number VTOR = 0xe000ed08;
+
 // should initialize PC and SP according to bootrom's vector table
 TEST(boot_rom_initialize, RP2040) {
   RP2040 *rp2040 = new RP2040();
@@ -75,11 +77,22 @@ TEST(execute_mrs_instruction, executeInstruction) {
   EXPECT_EQ(rp2040->getPC(), 0x10000004);
 }
 
+// should execute a `msr ipsr, r0` instruction
+TEST(execute_msr_instruction, executeInstruction) {
+  RP2040 *rp2040 = new RP2040();
+  rp2040->setPC(0x10000000);
+  rp2040->flashView->setUint32(0, opcodeMSR(8, R0)); // 5 === ipsr
+  rp2040->registers[0] = 0x1234;
+  rp2040->executeInstruction();
+  EXPECT_EQ(rp2040->getSP(), 0x1234);
+  EXPECT_EQ(rp2040->getPC(), 0x10000004);
+}
+
 // should execute a `movs r5, #128` instruction
 TEST(execute_mov_instruction_1, executeInstruction) {
   RP2040 *rp2040 = new RP2040();
   rp2040->setPC(0x10000000);
-  rp2040->flash16[0] = 0x2580; // movs r5, #128
+  rp2040->flash16[0] = opcodeMOVS(R5, 128);
   EXPECT_EQ(rp2040->flash[0], 0x80);
   EXPECT_EQ(rp2040->flash[1], 0x25);
   rp2040->executeInstruction();
@@ -1179,4 +1192,31 @@ TEST(nvic_ipr5, nvicRegisters) {
   rp2040->interruptPriorities[3] = 0xffc00000; // interrupt 22 ... 31
   // Set the priority of interrupt number 14 to 2
   EXPECT_EQ(rp2040->readUint32(0xe000e414), (int)0xc0c08040);
+}
+
+// should return the correct interrupt priorities when reading from NVIC_IPR5
+TEST(exception_handler, exceptionEntry_and_exceptionReturn) {
+  const number INT1 = 1 << 1;
+  const number INT1_HANDLER = 0x10000100;
+  const number EXC_INT1 = 16 + 1;
+  RP2040 *rp2040 = new RP2040();
+  rp2040->setSP(0x20004000);
+  rp2040->setPC(0x10004000);
+  rp2040->registers[R0] = 0x44;
+  rp2040->pendingInterrupts = INT1;
+  rp2040->enabledInterrupts = INT1;
+  rp2040->interruptsUpdated = true;
+  rp2040->writeUint32(VTOR, 0x10000000);
+  rp2040->writeUint32(0x10000000 + EXC_INT1 * 4, INT1_HANDLER);
+  rp2040->writeUint16(INT1_HANDLER, opcodeMOVS(R0, 0x55));
+  rp2040->writeUint16(INT1_HANDLER + 2, opcodeBX(LR));
+  // Exception handler should start at this point.
+  rp2040->executeInstruction(); // MOVS r0, 0x55
+  EXPECT_EQ(rp2040->IPSR, EXC_INT1);
+  EXPECT_EQ(rp2040->getPC(), INT1_HANDLER + 2);
+  EXPECT_EQ(rp2040->registers[R0], 0x55);
+  rp2040->executeInstruction(); // BX lr
+  EXPECT_EQ(rp2040->getPC(), 0x10004000);
+  EXPECT_EQ(rp2040->registers[R0], 0x44);
+  EXPECT_EQ(rp2040->IPSR, 0);
 }

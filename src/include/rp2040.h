@@ -45,16 +45,41 @@ const number OFFSET_NVIC_ICPR = 0xe280; // Interrupt Clear-Pending Register
 const uint16_t OFFSET_NVIC_IPRn[8] = {0xe400, 0xe404, 0xe408, 0xe40c,
                                       0xe410, 0xe414, 0xe418, 0xe41c};
 const number OFFSET_VTOR = 0xed08;
+const number OFFSET_SHPR2 = 0xed1c;
+const number OFFSET_SHPR3 = 0xed20;
+
+const number EXC_RESET = 1;
+const number EXC_NMI = 2;
+const number EXC_HARDFAULT = 3;
+const number EXC_SVCALL = 11;
+const number EXC_PENDSV = 14;
+const number EXC_SYSTICK = 15;
 
 const number SYSM_APSR = 0;
+const number SYSM_IAPSR = 1;
+const number SYSM_EAPSR = 2;
+const number SYSM_XPSR = 3;
 const number SYSM_IPSR = 5;
+const number SYSM_EPSR = 6;
+const number SYSM_IEPSR = 7;
+const number SYSM_MSP = 8;
+const number SYSM_PSP = 9;
+const number SYSM_PRIMASK = 16;
+const number SYSM_CONTROL = 20;
+
+// Lowest possible exception priority
+const number LOWEST_PRIORITY = 4;
 
 enum EXECUTION_MODE { MODE_THREAD, MODE_HANDLER };
 
 const number PC_REGISTER = 15;
 
+enum STACK_POINTER_BANK { SP_MAIN, SP_PROCESS };
+
 class RP2040 {
 private:
+  number bankedSP = 0;
+
   number dr0 = 0;
   number VTOR = 0;
 
@@ -65,8 +90,6 @@ private:
   number breakCount = 0;
 
   EXECUTION_MODE currentMode = MODE_THREAD;
-  number enabledInterrupts = 0;
-  bool interruptsUpdated = false;
 
 public:
   uint32_t bootrom[BOOT_ROM_B1_SIZE] = {
@@ -96,8 +119,17 @@ public:
   bool Z = false;
   bool V = false;
 
+  // PRIMASK fields
+  bool PM = false;
+
+  // CONTROL fields
+  STACK_POINTER_BANK SPSEL = SP_MAIN;
+  bool nPRIV = false;
+
   number IPSR = 0;
   number pendingInterrupts = 0;
+  number enabledInterrupts = 0;
+  bool interruptsUpdated = false;
   number interruptPriorities[INTERRUPT_PRIORITIES_SIZE] = {0xffffffff, 0x0, 0x0,
                                                            0x0};
   number interruptNMIMask = 0;
@@ -162,8 +194,18 @@ public:
   void writeUint16(number address, number value);
   void writeUint8(number address, number value);
 
-  void raiseException(number exceptionNumber);
+  void switchStack(STACK_POINTER_BANK stack);
+  number getSPprocess();
+  void setSPprocess(number value);
+  number getSPmain();
+  void setSPmain(number value);
+  void exceptionEntry(number exceptionNumber);
+  void exceptionReturn(number excReturn);
+  number exceptionPriority(number n);
   void checkForInterrupts();
+  number readSpecialRegister(number sysm);
+  void writeSpecialRegister(number sysm, number value);
+  void BXWritePC(number address);
 
   void executeInstruction();
   void execute();

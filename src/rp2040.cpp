@@ -1,5 +1,6 @@
 #include "rp2040.h"
 #include "bootrom.h"
+#include <algorithm>
 #include <cstring>
 #include <iostream>
 #include <vector>
@@ -89,7 +90,6 @@ RP2040::RP2040() {
           for (number byteIndex = 0; byteIndex < 4; byteIndex++) {
             const number interruptNumber = regIndex * 4 + byteIndex;
             const number newPriority = (newValue >> (8 * byteIndex + 6)) & 0x3;
-            cout << interruptNumber << "=" << newPriority << endl;
             for (number priority = 0; priority < INTERRUPT_PRIORITIES_SIZE;
                  priority++) {
               this->interruptPriorities[priority] &= ~(1 << interruptNumber);
@@ -332,70 +332,244 @@ void RP2040::writeUint8(number address, number value) {
   this->writeUint32(alignedAddress, newValue[0]);
 }
 
-void RP2040::raiseException(number exceptionNumber) {
-  // PushStack()
-  number frameptr = 0;
-  number frameptralign = 0;
-  if (CONTROL.SPSEL == '1' && this->currentMode == MODE_THREAD) {
-    frameptralign = SP_process & 0b100 ? 1 : 0;
-    SP_process = (SP_process - 0x20) & ~0b100;
-    frameptr = SP_process;
+void RP2040::switchStack(STACK_POINTER_BANK stack) {
+  if (this->SPSEL != stack) {
+    const number temp = this->getSP();
+    this->setSP(this->bankedSP);
+    this->bankedSP = temp;
+    this->SPSEL = stack;
+  }
+}
+
+number RP2040::getSPprocess() {
+  return this->SPSEL == SP_PROCESS ? this->getSP() : this->bankedSP;
+}
+
+void RP2040::setSPprocess(number value) {
+  if (this->SPSEL == SP_PROCESS) {
+    this->setSP(value);
   } else {
-    frameptralign = SP_main & 0b100 ? 1 : 0;
-    SP_main = (SP_main - 0x20) & ~0b100;
-    frameptr = SP_main;
+    this->bankedSP = (uint32_t)value;
+  }
+}
+
+number RP2040::getSPmain() {
+  return this->SPSEL == SP_MAIN ? this->getSP() : this->bankedSP;
+}
+
+void RP2040::setSPmain(number value) {
+  if (this->SPSEL == SP_MAIN) {
+    this->setSP(value);
+  } else {
+    this->bankedSP = (uint32_t)value;
+  }
+}
+
+void RP2040::exceptionEntry(number exceptionNumber) {
+  // PushStack:
+  number framePtr = 0;
+  number framePtrAlign = 0;
+  if (this->SPSEL && this->currentMode == MODE_THREAD) {
+    framePtrAlign = this->getSPprocess() & 0b100 ? 1 : 0;
+    this->setSPprocess((this->getSPprocess() - 0x20) & ~0b100);
+    framePtr = this->getSPprocess();
+  } else {
+    framePtrAlign = this->getSPmain() & 0b100 ? 1 : 0;
+    this->setSPmain((this->getSPmain() - 0x20) & ~0b100);
+    framePtr = this->getSPmain();
   }
   /* only the stack locations, not the store order, are architected */
-  this->writeUint32(frameptr, this->registers[0]);
-  this->writeUint32(frameptr + 0x4, this->registers[1]);
-  this->writeUint32(frameptr + 0x8, this->registers[2]);
-  this->writeUint32(frameptr + 0xc, this->registers[3]);
-  this->writeUint32(frameptr + 0x10, this->registers[12]);
-  this->writeUint32(frameptr + 0x14, this->getLR());
-  this->writeUint32(frameptr + 0x18,
+  this->writeUint32(framePtr, this->registers[0]);
+  this->writeUint32(framePtr + 0x4, this->registers[1]);
+  this->writeUint32(framePtr + 0x8, this->registers[2]);
+  this->writeUint32(framePtr + 0xc, this->registers[3]);
+  this->writeUint32(framePtr + 0x10, this->registers[12]);
+  this->writeUint32(framePtr + 0x14, this->getLR());
+  this->writeUint32(framePtr + 0x18,
                     this->getPC()); // ReturnAddress(ExceptionType);
-  this->writeUint32(frameptr + 0x1c,
-                    (this->getxPSR() & ~(1 << 9)) | (frameptralign << 9));
+  this->writeUint32(framePtr + 0x1c,
+                    (this->getxPSR() & ~(1 << 9)) | (framePtrAlign << 9));
   if (this->currentMode == MODE_HANDLER) {
     this->setLR(0xfffffff1);
   } else {
-    if (CONTROL.SPSEL == '0') {
+    if (!this->SPSEL) {
       this->setLR(0xfffffff9);
     } else {
       this->setLR(0xfffffffd);
     }
   }
-  // ExceptionTaken()
-  ///
+  // ExceptionTaken:
   this->currentMode = MODE_HANDLER; // Enter Handler Mode, now Privileged
   this->IPSR = exceptionNumber;
-  // CONTROL.SPSEL = '0'; // Current stack is now SP main
+  this->switchStack(SP_MAIN);
   // SetEventRegister(); // See WFE instruction for details
   const number vectorTable = this->readUint32(PPB_BASE + OFFSET_VTOR);
   this->setPC(this->readUint32(vectorTable + 4 * exceptionNumber));
 }
 
+void RP2040::exceptionReturn(number excReturn) {
+  number framePtr = this->getSPmain();
+  switch (excReturn & 0xf) {
+  case 0b0001: // Return to Handler
+    this->currentMode = MODE_HANDLER;
+    this->switchStack(SP_MAIN);
+    break;
+  case 0b1001: // Return to Thread using Main stack
+    this->currentMode = MODE_THREAD;
+    this->switchStack(SP_MAIN);
+    break;
+  case 0b1101: // Return to Thread using Process stack
+    framePtr = this->getSPprocess();
+    this->currentMode = MODE_THREAD;
+    this->switchStack(SP_PROCESS);
+    break;
+    // Assigning CurrentMode to Mode_Thread causes a drop in privilege
+    // if CONTROL.nPRIV is set to 1
+  }
+
+  // PopStack:
+  this->registers[0] = this->readUint32(
+      framePtr); // Stack accesses are performed as Unprivileged accesses if
+  this->registers[1] = this->readUint32(
+      framePtr +
+      0x4); // CONTROL<0>=='1' && EXC_RETURN<3>=='1' Privileged otherwise
+  this->registers[2] = this->readUint32(framePtr + 0x8);
+  this->registers[3] = this->readUint32(framePtr + 0xc);
+  this->registers[12] = this->readUint32(framePtr + 0x10);
+  this->setLR(this->readUint32(framePtr + 0x14));
+  this->setPC(this->readUint32(framePtr + 0x18));
+  const number psr = this->readUint32(framePtr + 0x1c);
+
+  const number framePtrAlign = psr & (1 << 9) ? 0b100 : 0;
+
+  switch (excReturn & 0xf) {
+  case 0b0001: // Returning to Handler mode
+    this->setSPmain((this->getSPmain() + 0x20) | framePtrAlign);
+  case 0b1001: // Returning to Thread mode using Main stack
+    this->setSPmain((this->getSPmain() + 0x20) | framePtrAlign);
+  case 0b1101: // Returning to Thread mode using Process stack
+    this->setSPprocess((this->getSPprocess() + 0x20) | framePtrAlign);
+  }
+
+  this->setAPSR(psr & 0xf0000000);
+  const number forceThread = this->currentMode == MODE_THREAD && this->nPRIV;
+  this->IPSR = forceThread ? 0 : psr & 0x3f;
+  // Thumb bit should always be one! EPSR<24> = psr<24>; // Load valid EPSR bits
+  // from memory SetEventRegister(); // See WFE instruction for more details if
+  // CurrentMode == Mode_Thread && SCR.SLEEPONEXIT == '1' then SleepOnExit(); //
+  // IMPLEMENTATION DEFINED
+}
+
+number RP2040::exceptionPriority(number n) {
+  switch (n) {
+  case EXC_RESET:
+    return -3;
+  case EXC_NMI:
+    return -2;
+  case EXC_HARDFAULT:
+    return -1;
+  case EXC_SVCALL:
+    return this->readUint32(PPB_BASE + OFFSET_SHPR2) >> 30;
+  case EXC_PENDSV:
+    return (this->readUint32(PPB_BASE + OFFSET_SHPR3) >> 22) & 0x3;
+  case EXC_SYSTICK:
+    return this->readUint32(PPB_BASE + OFFSET_SHPR3) >> 30;
+  default:
+    if (n < 16) {
+      return LOWEST_PRIORITY;
+    }
+    const number intNum = n - 16;
+    for (number priority = 0; priority < 4; priority++) {
+      if (this->interruptPriorities[priority] & (1 << intNum)) {
+        return priority;
+      }
+    }
+    return LOWEST_PRIORITY;
+  }
+}
+
 void RP2040::checkForInterrupts() {
-  // TODO: when we implement the rest of the exceptions:
-  //  if n == Reset then result = -3;
-  //  elsif n == NMI then result = -2;
-  //  elsif n == HardFault then result = -1;
-  //  elsif n == SVCall then result = UInt(SHPR2.PRI_11);
-  //  elsif n == PendSV then result = UInt(SHPR3.PRI_14);
-  //  elsif n == SysTick then result = UInt(SHPR3.PRI_15);
+  const number currentPriority =
+      min(this->exceptionPriority(this->IPSR), this->PM ? 0 : LOWEST_PRIORITY);
   const number interruptSet = this->pendingInterrupts & this->enabledInterrupts;
-  for (number priority = 0; priority < INTERRUPT_PRIORITIES_SIZE; priority++) {
+  for (number priority = 0; priority < currentPriority; priority++) {
     const number levelInterrupts =
         interruptSet & this->interruptPriorities[priority];
     if (levelInterrupts) {
       for (number interruptNumber = 0; interruptNumber < 32;
            interruptNumber++) {
         if (levelInterrupts & (1 << interruptNumber)) {
-          this->raiseException(16 + interruptNumber);
+          this->exceptionEntry(16 + interruptNumber);
           return;
         }
       }
     }
+  }
+  this->interruptsUpdated = false;
+}
+
+number RP2040::readSpecialRegister(number sysm) {
+  switch (sysm) {
+  case SYSM_APSR:
+    return this->getAPSR();
+
+  case SYSM_IPSR:
+    return this->IPSR;
+
+  case SYSM_PRIMASK:
+    return this->PM ? 1 : 0;
+
+  case SYSM_MSP:
+    return this->getSPmain();
+
+  case SYSM_PSP:
+    return this->getSPprocess();
+
+  case SYSM_CONTROL:
+    return (this->SPSEL == SP_PROCESS ? 2 : 0) | (this->nPRIV ? 1 : 0);
+
+  default:
+    cout << "MRS with unimplemented SYSm value: 0x" << hex << sysm << endl;
+    return 0;
+  }
+}
+
+void RP2040::writeSpecialRegister(number sysm, number value) {
+  switch (sysm) {
+  case SYSM_APSR:
+    this->setAPSR(value);
+    break;
+
+  case SYSM_IPSR:
+    this->IPSR = value;
+    break;
+
+  case SYSM_PRIMASK:
+    this->PM = !!(value & 1);
+
+  case SYSM_MSP:
+    this->setSPmain(value);
+    break;
+
+  case SYSM_PSP:
+    this->setSPprocess(value);
+    break;
+
+  case SYSM_CONTROL:
+    this->nPRIV = !!(value & 1);
+    this->switchStack(value & 2 ? SP_PROCESS : SP_MAIN);
+    break;
+
+  default:
+    cout << "MSR with unimplemented SYSm value: 0x" << hex << sysm << endl;
+  }
+}
+
+void RP2040::BXWritePC(number address) {
+  if (this->currentMode == MODE_HANDLER && (uint32_t)address >> 28 == 0b1111) {
+    this->exceptionReturn(address & 0x0fffffff);
+  } else {
+    this->setPC(address & ~1);
   }
 }
 
@@ -575,7 +749,7 @@ void RP2040::executeInstruction() {
   // BX
   else if (opcode >> 7 == 0b010001110 && (opcode & 0x7) == 0) {
     const number Rm = (opcode >> 3) & 0xf;
-    this->setPC(this->registers[Rm] & ~1);
+    this->BXWritePC(this->registers[Rm]);
   }
   // CMP immediate
   else if (opcode >> 11 == 0b00101) {
@@ -604,18 +778,22 @@ void RP2040::executeInstruction() {
   } else if (opcode >> 8 == 0b01000101) {
     const number Rm = (opcode >> 3) & 0xf;
     const number Rn = ((opcode >> 4) & 0x8) | (opcode & 0x7);
-    const number leftValue = this->registers[Rn] | 0;
-    const number rightValue = this->registers[Rm] | 0;
-    const number result = (leftValue - rightValue) | 0;
+    const number leftValue = (int)this->registers[Rn];
+    const number rightValue = (int)this->registers[Rm];
+    const number result = (int)(leftValue - rightValue);
     this->N = leftValue < rightValue;
     this->Z = leftValue == rightValue;
     this->C = leftValue >= rightValue;
     this->V = (leftValue > 0 && rightValue < 0 && result < 0) ||
               (leftValue < 0 && rightValue > 0 && result > 0);
-  } else if (opcode == 0xb672) {
-    cout << "ignoring cpsid i" << endl;
-  } else if (opcode == 0xb662) {
-    cout << "ignoring cpsie i" << endl;
+  }
+  // CPSID i
+  else if (opcode == 0xb672) {
+    this->PM = true;
+  }
+  // CPSIE i
+  else if (opcode == 0xb662) {
+    this->PM = false;
   }
   // DMB SY
   else if (opcode == 0xf3bf && opcode2 == 0x8f5f) {
@@ -792,25 +970,15 @@ void RP2040::executeInstruction() {
   else if (opcode == 0b1111001111101111 && opcode2 >> 12 == 0b1000) {
     const number SYSm = opcode2 & 0xff;
     const number Rd = (opcode2 >> 8) & 0xf;
-    switch (SYSm) {
-    case SYSM_APSR:
-      this->registers[Rd] = this->getAPSR();
-      break;
-
-    case SYSM_IPSR:
-      this->registers[Rd] = this->IPSR;
-      break;
-
-    default:
-      cout << "MRS with unimplemented SYSm value: 0x" << hex << SYSm << endl;
-    }
+    this->registers[Rd] = this->readSpecialRegister(SYSm);
     this->setPC(this->getPC() + 2);
-    cout << "MRS!" << endl;
   }
   // MSR
   else if (opcode >> 4 == 0b111100111000 && opcode2 >> 8 == 0b10001000) {
+    const number SYSm = opcode2 & 0xff;
+    const number Rn = opcode & 0xf;
+    this->writeSpecialRegister(SYSm, this->registers[Rn]);
     this->setPC(this->getPC() + 2);
-    cout << "MSR!" << endl;
   }
   // MULS
   else if (opcode >> 6 == 0b0100001101) {
@@ -841,6 +1009,7 @@ void RP2040::executeInstruction() {
   }
   // POP
   else if (opcode >> 9 == 0b1011110) {
+    const number P = (opcode >> 8) & 1;
     number address = this->getSP();
     for (number i = 0; i <= 7; i++) {
       if (opcode & (1 << i)) {
@@ -848,9 +1017,8 @@ void RP2040::executeInstruction() {
         address += 4;
       }
     }
-    if ((opcode >> 8) & 1) {
-      this->setPC(this->readUint32(address));
-      this->writeUint32(address, this->registers[14]);
+    if (P) {
+      this->BXWritePC(this->readUint32(address));
       address += 4;
     }
     this->setSP(address);
