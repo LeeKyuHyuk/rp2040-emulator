@@ -6,7 +6,7 @@
 #include <iostream>
 #include <sstream>
 
-#define VERSION "0.1.1"
+#define VERSION "0.2.0"
 
 string readHexFile(const string &path) {
   ifstream input_file(path);
