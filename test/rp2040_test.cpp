@@ -220,6 +220,18 @@ TEST(execute_muls_instruction_3, executeInstruction) {
   EXPECT_EQ(rp2040->Z, false);
 }
 
+// should execute a muls instruction with
+// large 32-bit numbers and produce the correct result
+TEST(execute_muls_instruction_4, executeInstruction) {
+  RP2040 *rp2040 = new RP2040();
+  rp2040->setPC(0x10000000);
+  rp2040->flash16[0] = opcodeMULS(R0, R2);
+  rp2040->registers[R0] = 2654435769;
+  rp2040->registers[R2] = 340573321;
+  rp2040->executeInstruction();
+  EXPECT_EQ(rp2040->registers[R2], 1);
+}
+
 // should execute a `mvns r4, r3` instruction
 TEST(execute_mvns_instruction, executeInstruction) {
   RP2040 *rp2040 = new RP2040();

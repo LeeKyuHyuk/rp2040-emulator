@@ -984,7 +984,7 @@ void RP2040::executeInstruction() {
   else if (opcode >> 6 == 0b0100001101) {
     const number Rn = (opcode >> 3) & 0x7;
     const number Rdm = opcode & 0x7;
-    const number result = this->registers[Rn] * this->registers[Rdm];
+    const number result = (int)this->registers[Rn] * (int)this->registers[Rdm];
     this->registers[Rdm] = result;
     this->N = !!(result & 0x80000000);
     this->Z = (result & 0xffffffff) == 0;
