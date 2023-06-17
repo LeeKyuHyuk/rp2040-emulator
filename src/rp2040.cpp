@@ -1,7 +1,6 @@
 #include "rp2040.h"
 #include "bootrom.h"
 #include <cstring>
-#include <format>
 #include <iostream>
 #include <vector>
 
@@ -26,7 +25,7 @@ RP2040::RP2040() {
                           });
   this->readHooks.emplace(
       XIP_SSI_BASE + SSI_SR_OFFSET,
-      [&](number address) -> number { return this->SSI_SR_TFE_BITS; });
+      [&](number address) -> number { return SSI_SR_TFE_BITS; });
 
   dr0 = 0;
 #if 0
@@ -79,6 +78,25 @@ number RP2040::getPC() { return this->registers[15]; }
 
 void RP2040::setPC(number value) { this->registers[15] = value; }
 
+number RP2040::getAPSR() {
+  return ((this->N ? 0x8000000 : 0) | (this->Z ? 0x4000000 : 0) |
+          (this->C ? 0x2000000 : 0) | (this->V ? 0x1000000 : 0));
+}
+
+void RP2040::setAPSR(number value) {
+  this->N = !!(value & 0x8000000);
+  this->Z = !!(value & 0x4000000);
+  this->C = !!(value & 0x2000000);
+  this->V = !!(value & 0x1000000);
+}
+
+number RP2040::getxPSR() { return this->getAPSR() | this->IPSR | (1 << 24); }
+
+void RP2040::setxPSR(number value) {
+  this->setAPSR(value);
+  this->IPSR = value & 0x3f;
+}
+
 Peripheral *RP2040::findPeripheral(number address) {
   map<number, Peripheral *>::iterator iter =
       (this->peripherals).find(((uint32_t)address >> 14) << 2);
@@ -123,11 +141,10 @@ bool RP2040::checkCondition(number cond) { // Evaluate base condition.
 
 number RP2040::readUint32(number address) {
   if (address & 0x3) {
-    string errorMsg = "[ERROR] read from address " + format("0x{:x}", address) +
-                      ", which is not 32 bit aligned";
     cout << endl;
-    cout << errorMsg << endl;
-    throw new runtime_error(errorMsg);
+    cout << "[ERROR] read from address 0x" << hex << address
+         << ", which is not 32 bit aligned" << endl;
+    throw new runtime_error("Read from address is not 32 bit aligned");
   }
   address = (uint32_t)address; // round to 32-bits, unsigned
   Peripheral *peripheral = this->findPeripheral(address);
@@ -642,6 +659,20 @@ void RP2040::executeInstruction() {
   }
   // MRS
   else if (opcode == 0b1111001111101111 && opcode2 >> 12 == 0b1000) {
+    const number SYSm = opcode2 & 0xff;
+    const number Rd = (opcode2 >> 8) & 0xf;
+    switch (SYSm) {
+    case SYSM_APSR:
+      this->registers[Rd] = this->getAPSR();
+      break;
+
+    case SYSM_IPSR:
+      this->registers[Rd] = this->IPSR;
+      break;
+
+    default:
+      cout << "MRS with unimplemented SYSm value: 0x" << hex << SYSm << endl;
+    }
     this->setPC(this->getPC() + 2);
     cout << "MRS!" << endl;
   }
@@ -649,6 +680,15 @@ void RP2040::executeInstruction() {
   else if (opcode >> 4 == 0b111100111000 && opcode2 >> 8 == 0b10001000) {
     this->setPC(this->getPC() + 2);
     cout << "MSR!" << endl;
+  }
+  // MULS
+  else if (opcode >> 6 == 0b0100001101) {
+    const number Rn = (opcode >> 3) & 0x7;
+    const number Rdm = opcode & 0x7;
+    const number result = this->registers[Rn] * this->registers[Rdm];
+    this->registers[Rdm] = result;
+    this->N = !!(result & 0x80000000);
+    this->Z = (result & 0xffffffff) == 0;
   }
   // MVNS
   else if (opcode >> 6 == 0b0100001111) {
@@ -703,6 +743,15 @@ void RP2040::executeInstruction() {
       this->writeUint32(address, this->registers[14]);
     }
     this->setSP(this->getSP() - (4 * bitCount));
+  }
+  // REV
+  else if (opcode >> 6 == 0b1011101000) {
+    number Rm = (opcode >> 3) & 0x7;
+    number Rd = opcode & 0x7;
+    const number input = this->registers[Rm];
+    this->registers[Rd] =
+        ((input & 0xff) << 24) | (((input >> 8) & 0xff) << 16) |
+        (((input >> 16) & 0xff) << 8) | ((input >> 24) & 0xff);
   }
   // NEGS / RSBS
   else if (opcode >> 6 == 0b0100001001) {
@@ -871,6 +920,16 @@ void RP2040::executeInstruction() {
     const number Rm = (opcode >> 3) & 0x7;
     const number Rd = opcode & 0x7;
     this->registers[Rd] = this->registers[Rm] & 0xff;
+  }
+  // UXTH
+  else if (opcode >> 6 == 0b1011001010) {
+    const number Rm = (opcode >> 3) & 0x7;
+    const number Rd = opcode & 0x7;
+    this->registers[Rd] = this->registers[Rm] & 0xffff;
+  }
+  // WFE
+  else if (opcode == 0b1011111100100000) {
+    // do nothing for now. Wait for event!
   } else {
     cout << "Warning: Instruction at 0x" << hex << opcodePC
          << " is not implemented yet!" << endl;

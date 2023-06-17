@@ -111,6 +111,9 @@ TEST(mrs, assembler) { EXPECT_EQ(opcodeMRS(R6, PRIMASK), 0x8610f3ef); }
 // should correctly encode an `msr PRIMASK, r6` instruction
 TEST(msr, assembler) { EXPECT_EQ(opcodeMSR(PRIMASK, R6), 0x8810f386); }
 
+// should correctly encode an `muls r2, r0` instruction
+TEST(muls, assembler) { EXPECT_EQ(opcodeMULS(R2, R0), 0x4350); }
+
 // should correctly encode an `mvns r3, r3` instruction
 TEST(mvns, assembler) { EXPECT_EQ(opcodeMVNS(R3, R3), 0x43db); }
 
@@ -121,6 +124,9 @@ TEST(prrs, assembler) { EXPECT_EQ(opcodeORRS(R3, R0), 0x4303); }
 TEST(pop, assembler) {
   EXPECT_EQ(opcodePOP(true, (1 << R0) | (1 << R1)), 0xbd03);
 }
+
+// should correctly encode an `rev r3, r1` instruction
+TEST(rev, assembler) { EXPECT_EQ(opcodeREV(R3, R1), 0xba0b); }
 
 // should correctly encode an `rsbs r0, r3` instruction
 TEST(rsbs, assembler) { EXPECT_EQ(opcodeRSBS(R0, R3), 0x4258); }
@@ -169,3 +175,6 @@ TEST(sxtb, assembler) { EXPECT_EQ(opcodeSXTB(R2, R2), 0xb252); }
 
 // should correctly encode an `uxtb r3, r3` instruction
 TEST(uxtb, assembler) { EXPECT_EQ(opcodeUXTB(R3, R3), 0xb2db); }
+
+// should correctly encode `uxth r3, r0
+TEST(uxth, assembler) { EXPECT_EQ(opcodeUXTH(R3, R0), 0xb283); }

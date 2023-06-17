@@ -65,11 +65,15 @@ number opcodeMRS(number Rd, number specReg);
 
 number opcodeMSR(number specReg, number Rn);
 
+number opcodeMULS(number Rn, number Rdm);
+
 number opcodeMVNS(number Rd, number Rm);
 
 number opcodeORRS(number Rn, number Rm);
 
 number opcodePOP(bool P, number registerList);
+
+number opcodeREV(number Rd, number Rn);
 
 number opcodeRSBS(number Rd, number Rn);
 
@@ -102,5 +106,7 @@ number opcodeSUBsp(number imm);
 number opcodeSXTB(number Rd, number Rm);
 
 number opcodeUXTB(number Rd, number Rm);
+
+number opcodeUXTH(number Rd, number Rm);
 
 #endif

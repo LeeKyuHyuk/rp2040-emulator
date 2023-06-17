@@ -124,6 +124,10 @@ number opcodeMSR(number specReg, number Rn) {
                     (0b111100111000 << 4) | (Rn & 0xf));
 }
 
+number opcodeMULS(number Rn, number Rdm) {
+  return (0b0100001101 << 6) | ((Rn & 7) << 3) | (Rdm & 7);
+}
+
 number opcodeMVNS(number Rd, number Rm) {
   return (0b0100001111 << 6) | ((Rm & 7) << 3) | (Rd & 7);
 }
@@ -134,6 +138,10 @@ number opcodeORRS(number Rn, number Rm) {
 
 number opcodePOP(bool P, number registerList) {
   return (0b1011110 << 9) | ((P ? 1 : 0) << 8) | registerList;
+}
+
+number opcodeREV(number Rd, number Rn) {
+  return (0b1011101000 << 6) | ((Rn & 0x7) << 3) | (Rd & 0x7);
 }
 
 number opcodeRSBS(number Rd, number Rn) {
@@ -200,4 +208,8 @@ number opcodeSXTB(number Rd, number Rm) {
 
 number opcodeUXTB(number Rd, number Rm) {
   return (0b1011001011 << 6) | ((Rm & 7) << 3) | (Rd & 7);
+}
+
+number opcodeUXTH(number Rd, number Rm) {
+  return (0b1011001010 << 6) | ((Rm & 7) << 3) | (Rd & 7);
 }

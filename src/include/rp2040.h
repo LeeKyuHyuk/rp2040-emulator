@@ -23,24 +23,27 @@ const number FLASH_END_ADDRESS = 0x14000000;
 const number RAM_START_ADDRESS = 0x20000000;
 const number SIO_START_ADDRESS = 0xD0000000;
 
+const number SIO_CPUID_OFFSET = 0;
+
+const number XIP_SSI_BASE = 0x18000000;
+const number SSI_SR_OFFSET = 0x00000028;
+const number SSI_DR0_OFFSET = 0x00000060;
+const number SSI_SR_BUSY_BITS = 0x00000001;
+const number SSI_SR_TFE_BITS = 0x00000004;
+const number CLOCKS_BASE = 0x40008000;
+const number CLK_REF_SELECTED = 0x38;
+const number CLK_SYS_SELECTED = 0x44;
+
+const number SYSTEM_CONTROL_BLOCK = 0xe000ed00;
+const number OFFSET_VTOR = 0x8;
+
+const number SYSM_APSR = 0;
+const number SYSM_IPSR = 5;
+
+const number PC_REGISTER = 15;
+
 class RP2040 {
 private:
-  const number SIO_CPUID_OFFSET = 0;
-
-  const number XIP_SSI_BASE = 0x18000000;
-  const number SSI_SR_OFFSET = 0x00000028;
-  const number SSI_DR0_OFFSET = 0x00000060;
-  const number SSI_SR_BUSY_BITS = 0x00000001;
-  const number SSI_SR_TFE_BITS = 0x00000004;
-  const number CLOCKS_BASE = 0x40008000;
-  const number CLK_REF_SELECTED = 0x38;
-  const number CLK_SYS_SELECTED = 0x44;
-
-  const number SYSTEM_CONTROL_BLOCK = 0xe000ed00;
-  const number OFFSET_VTOR = 0x8;
-
-  const number PC_REGISTER = 15;
-
   number dr0 = 0;
   number VTOR = 0;
 
@@ -77,6 +80,8 @@ public:
   bool C = false;
   bool Z = false;
   bool V = false;
+
+  number IPSR = 0;
 
   map<number, Peripheral *> peripherals = {
       {0x40000, new UnimplementedPeripheral(this, "SYSINFO_BASE")},
@@ -122,6 +127,11 @@ public:
   void setLR(number value);
   number getPC();
   void setPC(number value);
+
+  number getAPSR();
+  void setAPSR(number value);
+  number getxPSR();
+  void setxPSR(number value);
 
   Peripheral *findPeripheral(number address);
 

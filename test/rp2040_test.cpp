@@ -64,6 +64,17 @@ TEST(execute_push_instruction, executeInstruction) {
   EXPECT_EQ(rp2040->sram[0xFC], 0x42);
 }
 
+// should execute a `mrs r0, ipsr` instruction
+TEST(execute_mrs_instruction, executeInstruction) {
+  RP2040 *rp2040 = new RP2040();
+  rp2040->setPC(0x10000000);
+  rp2040->flashView->setUint32(0, opcodeMRS(R0, 5)); // 5 === ipsr
+  rp2040->registers[R0] = 55;
+  rp2040->executeInstruction();
+  EXPECT_EQ(rp2040->registers[R0], 0);
+  EXPECT_EQ(rp2040->getPC(), 0x10000004);
+}
+
 // should execute a `movs r5, #128` instruction
 TEST(execute_mov_instruction_1, executeInstruction) {
   RP2040 *rp2040 = new RP2040();
@@ -153,6 +164,47 @@ TEST(execute_mov_instruction_4, executeInstruction) {
   rp2040->flash16[0] = opcodeMOV(R3, PC);
   rp2040->executeInstruction();
   EXPECT_EQ(rp2040->registers[R3], 0x10000004);
+}
+
+// should execute a `muls r0, r2` instruction
+TEST(execute_muls_instruction_1, executeInstruction) {
+  RP2040 *rp2040 = new RP2040();
+  rp2040->setPC(0x10000000);
+  rp2040->flash16[0] = opcodeMULS(R0, R2);
+  rp2040->registers[R0] = 5;
+  rp2040->registers[R2] = 1000000;
+  rp2040->executeInstruction();
+  EXPECT_EQ(rp2040->registers[R2], 5000000);
+  EXPECT_EQ(rp2040->N, false);
+  EXPECT_EQ(rp2040->Z, false);
+}
+
+// should execute a `muls r0, r2` instruction and
+// set the Z flag when the result is zero
+TEST(execute_muls_instruction_2, executeInstruction) {
+  RP2040 *rp2040 = new RP2040();
+  rp2040->setPC(0x10000000);
+  rp2040->flash16[0] = opcodeMULS(R0, R2);
+  rp2040->registers[R0] = 0;
+  rp2040->registers[R2] = 1000000;
+  rp2040->executeInstruction();
+  EXPECT_EQ(rp2040->registers[R2], 0);
+  EXPECT_EQ(rp2040->N, false);
+  EXPECT_EQ(rp2040->Z, true);
+}
+
+// should execute a `muls r0, r2` instruction and
+// set the N flag when the result is negative
+TEST(execute_muls_instruction_3, executeInstruction) {
+  RP2040 *rp2040 = new RP2040();
+  rp2040->setPC(0x10000000);
+  rp2040->flash16[0] = opcodeMULS(R0, R2);
+  rp2040->registers[R0] = -1;
+  rp2040->registers[R2] = 1000000;
+  rp2040->executeInstruction();
+  EXPECT_EQ(rp2040->registers[R2], (uint32_t)-1000000 >> 0);
+  EXPECT_EQ(rp2040->N, true);
+  EXPECT_EQ(rp2040->Z, false);
 }
 
 // should execute a `mvns r4, r3` instruction
@@ -399,6 +451,16 @@ TEST(execute_lsls_instruction_with_carry, executeInstruction) {
   rp2040->executeInstruction();
   EXPECT_EQ(rp2040->registers[R5], 0x40000);
   EXPECT_EQ(rp2040->C, true);
+}
+
+// should execute a `rev r3, r1` instruction
+TEST(execute_rev_instruction, executeInstruction) {
+  RP2040 *rp2040 = new RP2040();
+  rp2040->setPC(0x10000000);
+  rp2040->flash16[0] = opcodeREV(R2, R3);
+  rp2040->registers[R3] = 0x11223344;
+  rp2040->executeInstruction();
+  EXPECT_EQ(rp2040->registers[R2], 0x44332211);
 }
 
 // should execute a `rsbs r0, r3` instruction
@@ -800,7 +862,7 @@ TEST(execute_tst_instruction_1, executeInstruction) {
   EXPECT_EQ(rp2040->N, true);
 }
 
-// should execute an `tst r1, r3` instruction the registers are equal
+// should execute an `tst r1, r3` instruction when the registers are equal
 TEST(execute_tst_instruction_2, executeInstruction) {
   RP2040 *rp2040 = new RP2040();
   rp2040->setPC(0x10000000);
@@ -1026,7 +1088,7 @@ TEST(execute_bics_instruction_2, executeInstruction) {
   EXPECT_EQ(rp2040->Z, false);
 }
 
-// should execute an `uxtb r5, r3` instruction the registers are equal
+// should execute an `uxtb r5, r3` instruction
 TEST(execute_uxtb_instruction, executeInstruction) {
   RP2040 *rp2040 = new RP2040();
   rp2040->setPC(0x10000000);
@@ -1034,4 +1096,14 @@ TEST(execute_uxtb_instruction, executeInstruction) {
   rp2040->registers[R3] = 0x12345678;
   rp2040->executeInstruction();
   EXPECT_EQ(rp2040->registers[R5], 0x78);
+}
+
+// should execute an `uxth r3, r1` instruction
+TEST(execute_uxth_instruction, executeInstruction) {
+  RP2040 *rp2040 = new RP2040();
+  rp2040->setPC(0x10000000);
+  rp2040->flash16[0] = opcodeUXTH(R3, R1);
+  rp2040->registers[R1] = 0x12345678;
+  rp2040->executeInstruction();
+  EXPECT_EQ(rp2040->registers[R3], 0x5678);
 }
