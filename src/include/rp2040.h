@@ -129,6 +129,7 @@ public:
   number IPSR = 0;
   number pendingInterrupts = 0;
   number enabledInterrupts = 0;
+  bool pendingSVCall = false;
   bool interruptsUpdated = false;
   number interruptPriorities[INTERRUPT_PRIORITIES_SIZE] = {0xffffffff, 0x0, 0x0,
                                                            0x0};
@@ -201,6 +202,7 @@ public:
   void setSPmain(number value);
   void exceptionEntry(number exceptionNumber);
   void exceptionReturn(number excReturn);
+  number getSvCallPriority();
   number exceptionPriority(number n);
   void checkForInterrupts();
   number readSpecialRegister(number sysm);

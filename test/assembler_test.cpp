@@ -170,6 +170,9 @@ TEST(subs_2, assembler) { EXPECT_EQ(opcodeSUBSreg(R1, R1, R0), 0x1a09); }
 // should correctly encode an `subs r3, #13` instruction
 TEST(subs_3, assembler) { EXPECT_EQ(opcodeSUBS2(R3, 13), 0x3b0d); }
 
+// should correctly encode an `svc 0` instruction
+TEST(svc, assembler) { EXPECT_EQ(opcodeSVC(0), 0xdf00); }
+
 // should correctly encode an `sxtb r2, r2` instruction
 TEST(sxtb, assembler) { EXPECT_EQ(opcodeSXTB(R2, R2), 0xb252); }
 

@@ -105,6 +105,8 @@ number opcodeSUBSreg(number Rd, number Rn, number Rm);
 
 number opcodeSUBsp(number imm);
 
+number opcodeSVC(number imm8);
+
 number opcodeSXTB(number Rd, number Rm);
 
 number opcodeUXTB(number Rd, number Rm);

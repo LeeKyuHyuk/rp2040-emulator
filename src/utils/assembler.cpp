@@ -206,6 +206,8 @@ number opcodeSUBsp(number imm) {
   return (0b101100001 << 7) | ((imm >> 2) & 0x7f);
 }
 
+number opcodeSVC(number imm8) { return (0b11011111 << 8) | (imm8 & 0xff); }
+
 number opcodeSXTB(number Rd, number Rm) {
   return (0b1011001001 << 6) | ((Rm & 7) << 3) | (Rd & 7);
 }

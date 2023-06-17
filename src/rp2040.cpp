@@ -460,6 +460,10 @@ void RP2040::exceptionReturn(number excReturn) {
   // IMPLEMENTATION DEFINED
 }
 
+number RP2040::getSvCallPriority() {
+  return (uint32_t)this->readUint32(PPB_BASE + OFFSET_SHPR2) >> 30;
+}
+
 number RP2040::exceptionPriority(number n) {
   switch (n) {
   case EXC_RESET:
@@ -469,11 +473,11 @@ number RP2040::exceptionPriority(number n) {
   case EXC_HARDFAULT:
     return -1;
   case EXC_SVCALL:
-    return this->readUint32(PPB_BASE + OFFSET_SHPR2) >> 30;
+    return this->getSvCallPriority();
   case EXC_PENDSV:
     return (this->readUint32(PPB_BASE + OFFSET_SHPR3) >> 22) & 0x3;
   case EXC_SYSTICK:
-    return this->readUint32(PPB_BASE + OFFSET_SHPR3) >> 30;
+    return (uint32_t)this->readUint32(PPB_BASE + OFFSET_SHPR3) >> 30;
   default:
     if (n < 16) {
       return LOWEST_PRIORITY;
@@ -495,6 +499,11 @@ void RP2040::checkForInterrupts() {
   for (number priority = 0; priority < currentPriority; priority++) {
     const number levelInterrupts =
         interruptSet & this->interruptPriorities[priority];
+    if (this->pendingSVCall && priority == this->getSvCallPriority()) {
+      this->pendingSVCall = false;
+      this->exceptionEntry(EXC_SVCALL);
+      return;
+    }
     if (levelInterrupts) {
       for (number interruptNumber = 0; interruptNumber < 32;
            interruptNumber++) {
@@ -1194,6 +1203,11 @@ void RP2040::executeInstruction() {
     this->Z = leftValue == rightValue;
     this->C = leftValue >= rightValue;
     this->V = (int)leftValue < 0 && rightValue > 0 && result > 0;
+  }
+  // SVC
+  else if (opcode >> 8 == 0b11011111) {
+    this->pendingSVCall = true;
+    this->interruptsUpdated = true;
   }
   // SXTB
   else if (opcode >> 6 == 0b1011001001) {

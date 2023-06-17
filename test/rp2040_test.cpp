@@ -855,6 +855,27 @@ TEST(execute_subs_instruction_5, executeInstruction) {
   EXPECT_EQ(rp2040->V, false);
 }
 
+// should raise an SVCALL exception when `svc` instruction runs
+TEST(execute_svc_instruction, executeInstruction) {
+  const number SVCALL_HANDLER = 0x10002000;
+  RP2040 *rp2040 = new RP2040();
+  rp2040->setSP(0x20004000);
+  rp2040->setPC(0x10004000);
+  rp2040->writeUint16(0x10004000, opcodeSVC(10));
+  rp2040->registers[R0] = 0x44;
+  rp2040->writeUint32(VTOR, 0x10040000);
+  rp2040->writeUint32(0x10040000 + EXC_SVCALL * 4, SVCALL_HANDLER);
+  rp2040->writeUint16(SVCALL_HANDLER, opcodeMOVS(R0, 0x55));
+
+  rp2040->executeInstruction();
+  EXPECT_EQ(rp2040->pendingSVCall, true);
+
+  rp2040->executeInstruction(); // SVCall handler should run here
+  EXPECT_EQ(rp2040->pendingSVCall, false);
+  EXPECT_EQ(rp2040->getPC(), SVCALL_HANDLER + 2);
+  EXPECT_EQ(rp2040->registers[R0], 0x55);
+}
+
 // should execute a `sxtb r2, r2` instruction with sign bit 1
 TEST(execute_sxtb_instruction_1, executeInstruction) {
   RP2040 *rp2040 = new RP2040();
