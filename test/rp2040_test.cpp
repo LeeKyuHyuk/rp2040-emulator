@@ -605,6 +605,20 @@ TEST(execute_cmp_instruction_2, executeInstruction) {
   EXPECT_EQ(rp2040->V, false);
 }
 
+// should execute an `cmp ip, r6` instruction
+TEST(execute_cmp_instruction_3, executeInstruction) {
+  RP2040 *rp2040 = new RP2040();
+  rp2040->setPC(0x10000000);
+  rp2040->flash16[0] = 0x45b4; // cmp ip (r12), r6
+  rp2040->registers[IP] = 60;
+  rp2040->registers[R6] = 56;
+  rp2040->executeInstruction();
+  EXPECT_EQ(rp2040->N, false);
+  EXPECT_EQ(rp2040->Z, false);
+  EXPECT_EQ(rp2040->C, true);
+  EXPECT_EQ(rp2040->V, false);
+}
+
 // should execute a `subs r5, #10` instruction
 TEST(execute_subs_instruction_1, executeInstruction) {
   RP2040 *rp2040 = new RP2040();

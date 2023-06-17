@@ -452,6 +452,18 @@ void RP2040::executeInstruction() {
     this->C = leftValue >= rightValue;
     this->V = (leftValue > 0 && rightValue < 0 && result < 0) ||
               (leftValue < 0 && rightValue > 0 && result > 0);
+    // CMP (register) encoding T2
+  } else if (opcode >> 8 == 0b01000101) {
+    const number Rm = (opcode >> 3) & 0xf;
+    const number Rn = ((opcode >> 4) & 0x8) | (opcode & 0x7);
+    const number leftValue = this->registers[Rn] | 0;
+    const number rightValue = this->registers[Rm] | 0;
+    const number result = (leftValue - rightValue) | 0;
+    this->N = leftValue < rightValue;
+    this->Z = leftValue == rightValue;
+    this->C = leftValue >= rightValue;
+    this->V = (leftValue > 0 && rightValue < 0 && result < 0) ||
+              (leftValue < 0 && rightValue > 0 && result > 0);
   } else if (opcode == 0xb672) {
     cout << "ignoring cpsid i" << endl;
   } else if (opcode == 0xb662) {
