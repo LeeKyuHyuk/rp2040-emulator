@@ -566,7 +566,9 @@ void RP2040::writeSpecialRegister(number sysm, number value) {
 
   case SYSM_CONTROL:
     this->nPRIV = !!(value & 1);
-    this->switchStack(value & 2 ? SP_PROCESS : SP_MAIN);
+    if (this->currentMode == MODE_THREAD) {
+      this->switchStack(value & 2 ? SP_PROCESS : SP_MAIN);
+    }
     break;
 
   default:
