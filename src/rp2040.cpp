@@ -114,6 +114,19 @@ RP2040::RP2040() {
           return result;
         });
   }
+
+  this->readHooks.emplace(
+      PPB_BASE + OFFSET_SHPR2,
+      [&](number address) -> number { return this->SHPR2; });
+  this->readHooks.emplace(
+      PPB_BASE + OFFSET_SHPR3,
+      [&](number address) -> number { return this->SHPR3; });
+  this->writeHooks.emplace(
+      PPB_BASE + OFFSET_SHPR2,
+      [&](number address, number value) -> void { this->SHPR2 = value; });
+  this->writeHooks.emplace(
+      PPB_BASE + OFFSET_SHPR3,
+      [&](number address, number value) -> void { this->SHPR3 = value; });
 }
 
 void RP2040::loadBootrom(const uint32_t *bootromData, number bootromSize) {
@@ -285,6 +298,8 @@ void RP2040::writeUint32(number address, number value) {
       }
       cout << " set to LOW" << endl;
     }
+  } else if (address >= USBCTRL_BASE && address < USBCTRL_BASE + 0x100000) {
+    // Ignore these USB writes for now
   } else {
     map<number, function<void(number, number)>>::iterator iter =
         (this->writeHooks).find(address);
@@ -522,6 +537,9 @@ number RP2040::readSpecialRegister(number sysm) {
   case SYSM_APSR:
     return this->getAPSR();
 
+  case SYSM_XPSR:
+    return this->getxPSR();
+
   case SYSM_IPSR:
     return this->IPSR;
 
@@ -547,6 +565,10 @@ void RP2040::writeSpecialRegister(number sysm, number value) {
   switch (sysm) {
   case SYSM_APSR:
     this->setAPSR(value);
+    break;
+
+  case SYSM_XPSR:
+    this->setxPSR(value);
     break;
 
   case SYSM_IPSR:

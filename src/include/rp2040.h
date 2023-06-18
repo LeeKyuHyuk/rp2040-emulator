@@ -36,6 +36,8 @@ const number CLOCKS_BASE = 0x40008000;
 const number CLK_REF_SELECTED = 0x38;
 const number CLK_SYS_SELECTED = 0x44;
 
+const number USBCTRL_BASE = 0x50100000;
+
 const number PPB_BASE = 0xe0000000;
 const number OFFSET_NVIC_ISER = 0xe100; // Interrupt Set-Enable Register
 const number OFFSET_NVIC_ICER = 0xe180; // Interrupt Clear-Enable Register
@@ -134,6 +136,10 @@ public:
   number interruptPriorities[INTERRUPT_PRIORITIES_SIZE] = {0xffffffff, 0x0, 0x0,
                                                            0x0};
   number interruptNMIMask = 0;
+
+  // M0Plus built-in registers
+  number SHPR2 = 0;
+  number SHPR3 = 0;
 
   map<number, Peripheral *> peripherals = {
       {0x40000, new UnimplementedPeripheral(this, "SYSINFO_BASE")},
