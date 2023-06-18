@@ -44,7 +44,10 @@ TEST(adds_4, assembler) { EXPECT_EQ(opcodeANDS(R5, R0), 0x4005); }
 TEST(adr, assembler) { EXPECT_EQ(opcodeADR(R4, 52), 0xa40d); }
 
 // should correctly encode an `asrs r3, r2, #31` instruction
-TEST(asrs, assembler) { EXPECT_EQ(opcodeASRS(R3, R2, 31), 0x17d3); }
+TEST(asrs_1, assembler) { EXPECT_EQ(opcodeASRS(R3, R2, 31), 0x17d3); }
+
+// should correctly encode an `asrs r3, r4` instruction
+TEST(asrs_2, assembler) { EXPECT_EQ(opcodeASRSreg(R3, R4), 0x4123); }
 
 // should correctly encode an `bics r0, r3` instruction
 TEST(bics, assembler) { EXPECT_EQ(opcodeBICS(R0, R3), 0x4398); }
@@ -155,7 +158,7 @@ TEST(strb_2, assembler) { EXPECT_EQ(opcodeSTRBreg(R3, R2, R5), 0x5553); }
 // should correctly encode an `strh r1, [r3, #4]` instruction
 TEST(strh_1, assembler) { EXPECT_EQ(opcodeSTRH(R1, R3, 4), 0x8099); }
 
-//
+// should correctly encode an `strh r1, [r3, r2]` instruction
 TEST(strh_2, assembler) { EXPECT_EQ(opcodeSTRHreg(R1, R3, R2), 0x5299); }
 
 // should correctly encode an `sub sp, #12` instruction

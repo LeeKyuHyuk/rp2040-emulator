@@ -704,6 +704,20 @@ void RP2040::executeInstruction() {
     this->Z = (result & 0xffffffff) == 0;
     this->C = !!(((uint32_t)input >> (imm5 ? imm5 - 1 : 31)) & 0x1);
   }
+  // ASRS (register)
+  else if (opcode >> 6 == 0b0100000100) {
+    const number Rm = (opcode >> 3) & 0x7;
+    const number Rdn = opcode & 0x7;
+    const number input = this->registers[Rdn];
+    const number shiftN = this->registers[Rm] & 0xff;
+    const number result = (int)(this->registers[Rdn]) >> shiftN;
+    this->registers[Rdn] = result;
+    this->N = !!(result & 0x80000000);
+    this->Z = (result & 0xffffffff) == 0;
+    if (shiftN) {
+      this->C = !!(((uint32_t)input >> (shiftN - 1)) & 0x1);
+    }
+  }
   // B (with cond)
   else if (opcode >> 12 == 0b1101 && ((opcode >> 9) & 0x7) != 0b111) {
     number imm8 = (opcode & 0xff) << 1;

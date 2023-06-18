@@ -25,6 +25,8 @@ number opcodeANDS(number Rn, number Rm);
 
 number opcodeASRS(number Rd, number Rm, number imm5);
 
+number opcodeASRSreg(number Rdn, number Rm);
+
 number opcodeBICS(number Rdn, number Rm);
 
 number opcodeBL(number imm);

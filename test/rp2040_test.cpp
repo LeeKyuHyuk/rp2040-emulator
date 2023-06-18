@@ -1094,7 +1094,7 @@ TEST(execute_ands_instruction, executeInstruction) {
 }
 
 // should execute an `asrs r3, r2, #31` instruction
-TEST(execute_asrs_instruction, executeInstruction) {
+TEST(execute_asrs_instruction_1, executeInstruction) {
   RP2040 *rp2040 = new RP2040();
   rp2040->setPC(0x10000000);
   rp2040->flash16[0] = opcodeASRS(R3, R2, 31);
@@ -1105,6 +1105,21 @@ TEST(execute_asrs_instruction, executeInstruction) {
   EXPECT_EQ(rp2040->N, true);
   EXPECT_EQ(rp2040->Z, false);
   EXPECT_EQ(rp2040->C, false);
+}
+
+// should execute an `asrs r3, r4` instruction
+TEST(execute_asrs_instruction_2, executeInstruction) {
+  RP2040 *rp2040 = new RP2040();
+  rp2040->setPC(0x10000000);
+  rp2040->flash16[0] = opcodeASRSreg(R3, R4);
+  rp2040->registers[R3] = 0x80000040;
+  rp2040->registers[R4] = 0xff500007;
+  rp2040->executeInstruction();
+  EXPECT_EQ(rp2040->registers[R3], 0xff000000);
+  EXPECT_EQ(rp2040->getPC(), 0x10000002);
+  EXPECT_EQ(rp2040->N, true);
+  EXPECT_EQ(rp2040->Z, false);
+  EXPECT_EQ(rp2040->C, true);
 }
 
 // should execute `bics r0, r3` correctly

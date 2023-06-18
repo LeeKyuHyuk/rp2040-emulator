@@ -37,6 +37,11 @@ number opcodeASRS(number Rd, number Rm, number imm5) {
          (Rd & 0x7);
 }
 
+number opcodeASRSreg(number Rdn, number Rm) {
+  return (0b0100000100 << 6) | ((Rm & 0x7) << 3) | ((Rm & 0x7) << 3) |
+         (Rdn & 0x7);
+}
+
 number opcodeBICS(number Rdn, number Rm) {
   return (0b0100001110 << 6) | ((Rm & 7) << 3) | (Rdn & 7);
 }
